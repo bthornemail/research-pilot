@@ -600,10 +600,52 @@ export class CBDCResearchPilot {
    * Generate transaction amount based on user profile
    */
   private generateTransactionAmount(user: CBDCUser): number {
-    const baseAmount = user.behaviorModel.averageTransactionSize;
-    const variation = 0.5; // 50% variation
+    // Start with realistic base amount
+    const baseAmount = this.getRealisticBaseAmount(user);
     
-    return baseAmount * (1 + (Math.random() - 0.5) * variation);
+    // Apply user-specific multipliers (much smaller)
+    const behaviorMultiplier = 1 + (user.behaviorModel.economicSensitivity * 0.2); // Max 20% variation
+    const variation = 0.3; // 30% random variation
+    
+    const calculatedAmount = baseAmount * behaviorMultiplier * (1 + (Math.random() - 0.5) * variation);
+    
+    // Apply final realistic caps
+    const finalAmount = this.applyRealisticCaps(calculatedAmount, user);
+
+    console.log(`💰 Transaction Debug: ${user.userType} - Base: ${baseAmount}, Final: ${finalAmount}, Income: ${user.economicProfile.income}`);
+
+    return finalAmount;
+  }
+
+  private getRealisticBaseAmount(user: CBDCUser): number {
+    const baseSizes = {
+      [UserType.INDIVIDUAL]: 250,
+      [UserType.BUSINESS]: 2500, 
+      [UserType.BANK]: 25000,
+      [UserType.MERCHANT]: 500,
+      [UserType.GOVERNMENT]: 10000,
+      [UserType.CENTRAL_BANK]: 50000,
+      [UserType.FINANCIAL_INSTITUTION]: 15000
+    };
+    
+    return baseSizes[user.userType] || 250;
+  }
+
+  private applyRealisticCaps(amount: number, user: CBDCUser): number {
+    const absoluteCaps = {
+      [UserType.INDIVIDUAL]: 5000,           // No individual transaction over 5,000
+      [UserType.BUSINESS]: 50000,            // No business transaction over 50,000
+      [UserType.BANK]: 100000,               // No bank transaction over 100,000
+      [UserType.MERCHANT]: 10000,            // No merchant transaction over 10,000
+      [UserType.GOVERNMENT]: 100000,         // No government transaction over 100,000
+      [UserType.CENTRAL_BANK]: 250000,       // No central bank transaction over 250,000
+      [UserType.FINANCIAL_INSTITUTION]: 75000 // No FI transaction over 75,000
+    };
+    
+    const incomeBasedCap = user.economicProfile.income * 0.1; // Max 10% of income
+    const absoluteCap = absoluteCaps[user.userType] || 5000;
+    
+    return Math.min(amount, incomeBasedCap, absoluteCap);
   }
 
   /**
@@ -776,31 +818,54 @@ export class CBDCResearchPilot {
     const analytics = await this.getAnalytics();
     const users = Array.from(this.users.values());
     const transactions = Array.from(this.transactions.values());
+
+    console.log('🔍 Export Debug:');
+    console.log('  - Analytics object size:', JSON.stringify(analytics).length, 'bytes');
+    if (users.length > 0) {
+      console.log('  - Users:', users.length);
+      console.log('  - User object size:', JSON.stringify(users[0]).length, 'bytes');
+    }
+    if (transactions.length > 0) {
+      console.log('  - Transactions:', transactions.length);
+      console.log('  - Transaction object size:', JSON.stringify(transactions[0]).length, 'bytes');
+    }
     
     return {
       timestamp: new Date(),
       analytics,
-      userData: users.map(user => ({
-        id: user.id,
-        userType: user.userType,
-        economicProfile: user.economicProfile,
-        wallet: user.wallet,
-        asabiyyahScore: user.asabiyyahScore,
-        location: user.location,
-        demographics: user.demographics
-      })),
-      transactionData: transactions.map(tx => ({
-        id: tx.id,
-        from: tx.from,
-        to: tx.to,
-        amount: tx.amount,
-        type: tx.type,
-        timestamp: tx.timestamp,
-        status: tx.status,
-        fees: tx.fees,
-        metadata: tx.metadata
-      })),
-      economicSimulation: this.economicSimulation
+      userData: this.getUserAggregates(),
+      transactionData: this.getTransactionAggregates(),
+      economicSimulation: this.getEconomicSummary()
+    };
+  }
+
+  private getUserAggregates(): any {
+    const users = Array.from(this.users.values());
+    return {
+      count: users.length,
+      byType: users.reduce((acc, user) => {
+        acc[user.userType] = (acc[user.userType] || 0) + 1;
+        return acc;
+      }, {} as Record<UserType, number>)
+    };
+  }
+
+  private getTransactionAggregates(): any {
+    const transactions = Array.from(this.transactions.values());
+    return {
+      count: transactions.length,
+      totalVolume: transactions.reduce((sum, tx) => sum + tx.amount, 0),
+      byType: transactions.reduce((acc, tx) => {
+        acc[tx.type] = (acc[tx.type] || 0) + 1;
+        return acc;
+      }, {} as Record<TransactionType, number>)
+    };
+  }
+
+  private getEconomicSummary(): any {
+    return {
+        monetaryPolicy: this.economicSimulation.monetaryPolicy,
+        economicConditions: this.economicSimulation.economicConditions
     };
   }
 
@@ -830,17 +895,16 @@ export class CBDCResearchPilot {
   }
 
   private getAverageTransactionSize(userType: UserType): number {
-    const sizes = {
-      [UserType.INDIVIDUAL]: 100,
-      [UserType.BUSINESS]: 5000,
-      [UserType.BANK]: 100000,
-      [UserType.GOVERNMENT]: 25000,
-      [UserType.CENTRAL_BANK]: 1000000,
-      [UserType.MERCHANT]: 500,
-      [UserType.FINANCIAL_INSTITUTION]: 50000
+    const realisticSizes = {
+      [UserType.INDIVIDUAL]: 250,           // Realistic: $250 average
+      [UserType.BUSINESS]: 2500,            // Realistic: $2,500 average  
+      [UserType.BANK]: 25000,               // Realistic: $25,000 average
+      [UserType.MERCHANT]: 500,             // Realistic: $500 average
+      [UserType.GOVERNMENT]: 10000,         // Realistic: $10,000 average
+      [UserType.CENTRAL_BANK]: 50000,       // Realistic: $50,000 average
+      [UserType.FINANCIAL_INSTITUTION]: 15000 // Realistic: $15,000 average
     };
-    
-    return sizes[userType] || 100;
+    return realisticSizes[userType] || 250;
   }
 
   private getPreferredPaymentMethods(_userType: UserType): PaymentMethod[] {
@@ -931,7 +995,39 @@ export class CBDCResearchPilot {
   }
 
   private async initializeEconomicSimulation(): Promise<void> {
-    // Implementation would initialize economic simulation
+    this.economicSimulation = {
+        monetaryPolicy: {
+            interestRate: 0.05,
+            reserveRequirement: 0.1,
+            moneySupply: 1000000000,
+            inflationTarget: 0.02,
+            exchangeRate: 1,
+            policyChanges: []
+        },
+        economicConditions: {
+            gdp: 1000000000,
+            inflation: 0.02,
+            unemployment: 0.05,
+            consumerConfidence: 0.7,
+            businessConfidence: 0.6,
+            economicGrowth: 0.03
+        },
+        marketConditions: {
+            stockMarketIndex: 1000,
+            bondYields: 0.02,
+            commodityPrices: {},
+            foreignExchange: {},
+            marketVolatility: 0.2
+        },
+        regulatoryEnvironment: {
+            kycRequirements: {},
+            amlRegulations: {},
+            transactionReporting: {},
+            privacyRegulations: {},
+            crossBorderRegulations: {}
+        },
+        simulationParameters: {}
+    };
   }
 
   private async setupMonitoring(): Promise<void> {

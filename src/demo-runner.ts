@@ -208,7 +208,6 @@ class CBDCDemoRunner {
   private async initializePilot(): Promise<void> {
     const startTime = Date.now();
     
-    await this.pilot.initializePilot();
     await this.pilot['generateUsers'](this.config.userCount);
     
     const endTime = Date.now();
@@ -327,7 +326,7 @@ class CBDCDemoRunner {
       { type: 'json', frequency: 'daily', includeMetadata: true },
       period
     );
-    fs.writeFileSync('analytics-export.json', JSON.stringify(analyticsExport, null, 2));
+    fs.writeFileSync('analytics-export.json', analyticsExport.data);
     const endTime = Date.now();
     const duration = endTime - startTime;
     

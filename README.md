@@ -53,24 +53,31 @@ This demo showcases a complete CBDC research pilot system that includes:
 
 ## Architecture
 
+The CBDC Research Pilot is built on a multi-layered architecture with the Universal Topological Ledger (UTL) at its core.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    CBDC Research Pilot                      │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
-│  │   User Manager  │  │ Transaction     │  │   Analytics  │ │
-│  │                 │  │ Processor       │  │   Engine     │ │
-│  └─────────────────┘  └─────────────────┘  └──────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
-│  │   Simulation    │  │   Compliance    │  │   Economic   │ │
-│  │   Engine        │  │   Engine        │  │   Model      │ │
-│  └─────────────────┘  └─────────────────┘  └──────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
-│  │   UTL System    │  │   600-Cell      │  │   Asabiyyah  │ │
-│  │   Integration   │  │   Identity      │  │   Engine     │ │
-│  └─────────────────┘  └─────────────────┘  └──────────────┘ │
+│                    CBDC Research Pilot Application Layer    │
+│ ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐  │
+│ │Simulation Engine│  │Analytics Engine │  │  Compliance  │  │
+│ │(Agent-Based)    │  │(Real-Time)      │  │  (AML/KYC)   │  │
+│ └─────────────────┘  └─────────────────┘  └──────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                        ▲
+                        │ Transactions & Data
+                        ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Universal Topological Ledger (UTL)             │
+│ ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐  │
+│ │Geometric        │  │600-Cell Identity│  │Asabiyyah     │  │
+│ │Consensus (Ricci)│  │(Quantum Wave)   │  │Engine (Social)│ │
+│ └─────────────────┘  └─────────────────┘  └──────────────┘  │
+│                 │                                           │
+│                 ▼                                           │
+│ ┌───────────────────────────────────────────────────────┐   │
+│ │           Simplicial Complex Data Structure           │   │
+│ │           (Homology & Betti Numbers)                  │   │
+│ └───────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -240,13 +247,12 @@ This pilot system enables research in:
 
 ## Integration with UTL
 
-The CBDC pilot integrates with the Universal Topological Ledger:
+The CBDC pilot is deeply integrated with the Universal Topological Ledger, leveraging its unique mathematical foundations:
 
-- **Geometric Consensus**: Uses UTL's geometric consensus mechanism
-- **Topological Validation**: Leverages topological invariants for validation
-- **Asabiyyah Integration**: Incorporates social cohesion metrics
-- **600-Cell Identity**: Advanced identity management with wave functions
-- **Mathematical Framework**: Built on formal mathematical foundations
+- **Simplicial Complex Data Structure**: Transactions are recorded on a simplicial complex, a higher-dimensional data structure that captures complex relationships. Data integrity is ensured through the analysis of topological invariants like Betti numbers.
+- **Geometric Consensus**: Consensus is achieved through a Ricci flow mechanism, an intrinsic geometric process that drives the network toward a stable state. This is more efficient and secure than traditional consensus algorithms.
+- **600-Cell Quantum Identity**: User identity is managed by a revolutionary system based on the 600-cell polytope. Each identity is a unique wave function, providing a quantum-resistant and privacy-preserving method of verification.
+- **Asabiyyah Engine**: The system incorporates a mathematical model of social cohesion (Asabiyyah) to measure trust and incentivize cooperative behavior within the network, enhancing overall stability.
 
 ## Future Enhancements
 

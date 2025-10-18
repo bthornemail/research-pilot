@@ -10,6 +10,7 @@ import { CBDCUser, Transaction, UserType, TransactionType, TransactionStatus, KY
 import { SimulationState, SystemMetrics, UserBehaviorMetrics, TransactionMetrics } from './simulation-engine';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
+import * as crypto from 'crypto';
 
 export interface AnalyticsConfig {
   realTimeMonitoring: boolean;
@@ -777,12 +778,86 @@ export class CBDCAnalyticsEngine {
    * Export to JSON
    */
   private async exportToJSON(data: AnalyticsData, format: ExportFormat): Promise<ExportResult> {
+    const auditExport = {
+      // Audit metadata
+      audit: {
+        exportId: `audit_${Date.now()}`,
+        timestamp: new Date(),
+        dataIntegrity: {
+          userCount: data.users.length,
+          transactionCount: data.transactions.length,
+          totalBalance: data.users.reduce((sum, u) => sum + u.wallet.balance, 0),
+          totalVolume: data.transactions.reduce((sum, t) => sum + t.amount, 0),
+          hash: this.generateAuditHash(data)
+        }
+      },
+      
+      // Quick analysis data
+      analytics: {
+        summary: this.calculatePerformanceSummary(data),
+        metrics: {
+          user: this.calculateUserAnalytics(data),
+          transaction: this.calculateTransactionAnalytics(data),
+          system: this.calculateSystemAnalytics(data)
+        }
+      },
+      
+      // Full audit trail (optimized structure)
+      auditTrail: {
+        users: data.users.map(user => ({
+          // Essential audit fields only
+          id: user.id,
+          type: user.userType,
+          kyc: user.wallet.kycStatus,
+          balance: user.wallet.balance,
+          risk: user.wallet.riskScore,
+          economic: {
+            income: user.economicProfile.income,
+            savings: user.economicProfile.savings,
+            riskTolerance: user.economicProfile.riskTolerance
+          },
+          activity: user.lastActivity,
+          score: user.asabiyyahScore
+          // Removed: identityKernel, behaviorModel, transactionHistory (redundant)
+        })),
+        
+        transactions: data.transactions.map(transaction => ({
+          // Essential audit fields
+          id: transaction.id,
+          from: transaction.from,
+          to: transaction.to,
+          amount: transaction.amount,
+          type: transaction.type,
+          status: transaction.status,
+          timestamp: transaction.timestamp,
+          fees: transaction.fees,
+          compliance: {
+            approved: transaction.complianceCheck.approved,
+            risk: transaction.complianceCheck.riskAssessment,
+            flags: transaction.complianceCheck.flags.length
+          },
+          metadata: {
+            category: transaction.metadata.category,
+            description: transaction.metadata.description
+          }
+        }))
+      }
+    };
+
     return {
       format: 'json',
-      data: JSON.stringify(data, null, 2),
-      size: JSON.stringify(data).length,
+      data: JSON.stringify(auditExport, null, format.includeMetadata ? 2 : 0),
+      size: JSON.stringify(auditExport).length,
       timestamp: new Date()
     };
+  }
+
+  private generateAuditHash(data: AnalyticsData): string {
+    const content = JSON.stringify({
+      users: data.users.map(u => ({ id: u.id, balance: u.wallet.balance })),
+      transactions: data.transactions.map(t => ({ id: t.id, amount: t.amount }))
+    });
+    return crypto.createHash('sha256').update(content).digest('hex');
   }
 
   /**

@@ -1,5 +1,6 @@
 # CBDC specific
 analytics-export.json
+Heap.*
 
 # Dependencies
 package-*
