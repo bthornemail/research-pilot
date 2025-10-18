@@ -48,6 +48,7 @@ npm run demo:stress
 - **Users**: 100,000 simulated users
 - **Scenario**: Economic crisis simulation
 - **Purpose**: Stress testing under extreme conditions
+- **Note**: This scenario is not fully implemented. It currently runs the same simulation as the "Large Scale Demo".
 
 ## Understanding the Output
 
@@ -60,8 +61,8 @@ npm run demo:stress
 
 ### Final Report
 - **Performance Metrics**: TPS, latency, throughput
-- **Economic Analysis**: Asabiyyah scores, network effects
-- **Compliance Report**: Regulatory compliance status
+- **Economic Analysis**: Network effects
+- **Compliance Report**: Regulatory compliance status (Note: currently a placeholder)
 - **Recommendations**: System optimization suggestions
 
 ## Customization
