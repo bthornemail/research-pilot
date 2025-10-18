@@ -1,0 +1,90 @@
+{
+  "name": "cbdc-research-pilot-demo",
+  "version": "1.0.0",
+  "description": "CBDC Research Pilot Demo - A comprehensive Central Bank Digital Currency research pilot system with 100,000+ simulated users",
+  "main": "dist/demo-runner.js",
+  "type": "module",
+  "scripts": {
+    "demo": "tsx src/demo-runner.ts basic",
+    "demo:basic": "tsx src/demo-runner.ts basic",
+    "demo:large": "tsx src/demo-runner.ts large",
+    "demo:stress": "tsx src/demo-runner.ts stress",
+    "demo:economic-shock": "tsx src/demo-runner.ts economic-shock",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md}\""
+  },
+  "keywords": [
+    "cbdc",
+    "central-bank-digital-currency",
+    "blockchain",
+    "digital-currency",
+    "research",
+    "simulation",
+    "utl",
+    "universal-topological-ledger",
+    "600-cell",
+    "identity",
+    "asabiyyah",
+    "economic-simulation",
+    "compliance",
+    "analytics"
+  ],
+  "author": "Brian Thorne, Axiomatic Development Team",
+  "license": "MIT",
+  "dependencies": {
+    "jspdf": "^2.5.1",
+    "uuid": "^9.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.5.0",
+    "prettier": "^3.0.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/__tests__/**/*.ts",
+      "**/?(*.)+(spec|test).ts"
+    ],
+    "collectCoverageFrom": [
+      "**/*.ts",
+      "!**/*.d.ts",
+      "!**/node_modules/**",
+      "!**/dist/**"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "testTimeout": 30000
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bthornemail/research-pilot.git",
+    "directory": "demos/cbdc-research-pilot"
+  },
+  "bugs": {
+    "url": "https://github.com/bthornemail/research-pilot/issues"
+  },
+  "homepage": "https://github.com/bthornemail/research-pilot"
+}
