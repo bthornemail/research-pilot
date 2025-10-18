@@ -6,9 +6,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { CBDCResearchPilot, CBDCUser, UserType, Transaction, TransactionType, TransactionStatus, KYCStatus } from './research-pilot.js';
-import { CBDCSimulationEngine, SimulationConfig } from './simulation-engine.js';
-import { CBDCAnalyticsEngine, AnalyticsConfig, RealTimeMetrics } from './analytics-engine.js';
+import { CBDCResearchPilot, CBDCUser, UserType, Transaction, TransactionType, TransactionStatus, KYCStatus } from './research-pilot';
+import { CBDCSimulationEngine, SimulationConfig } from './simulation-engine';
+import { CBDCAnalyticsEngine, AnalyticsConfig, RealTimeMetrics } from './analytics-engine';
 
 describe('CBDC Research Pilot', () => {
   let pilot: CBDCResearchPilot;

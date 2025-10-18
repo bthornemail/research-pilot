@@ -5,11 +5,14 @@
  * showcasing various scenarios and capabilities of the system.
  */
 
-import { CBDCResearchPilot, CBDCPilotConfig } from './research-pilot.js';
-import { CBDCSimulationEngine, SimulationConfig } from './simulation-engine.js';
-import { CBDCAnalyticsEngine, AnalyticsConfig } from './analytics-engine.js';
-import { EnhancedH2GNN } from '@h2gnn/ai-persistence-core/enhanced-h2gnn.js';
+import { CBDCResearchPilot, CBDCPilotConfig } from './research-pilot';
+import { CBDCSimulationEngine, SimulationConfig } from './simulation-engine';
+import { CBDCAnalyticsEngine, AnalyticsConfig } from './analytics-engine';
+// import EnhancedH2GNN from '@h2gnn/ai-persistence-core/enhanced-h2gnn';
 import * as fs from 'fs';
+// import EnhancedH2GNN from '@h2gnn/core';
+// import EnhancedH2GNN from '@h2gnn/ai-persistence-core';
+// import { EnhancedH2GNN } from '@h2gnn/ai-persistence-core';
 
 interface DemoConfig {
   scenario: string;
@@ -24,7 +27,7 @@ class CBDCDemoRunner {
   private pilot!: CBDCResearchPilot;
   private simulationEngine!: CBDCSimulationEngine;
   private analyticsEngine!: CBDCAnalyticsEngine;
-  private h2gnn!: EnhancedH2GNN;
+  // private h2gnn!: typeof EnhancedH2GNN;
   private config: DemoConfig;
   private simulationResults: any = null; // Store simulation results for accurate analytics
 
@@ -41,39 +44,39 @@ class CBDCDemoRunner {
 
     // Initialize H²GNN for CBDC pilot
     console.log('🧠 Initializing H²GNN for CBDC pilot...');
-    this.h2gnn = new EnhancedH2GNN({
-      embeddingDim: 128,
-      numLayers: 4,
-      curvature: -1
-    }, {
-      storagePath: './cbdc-persistence',
-      maxMemories: 50000,
-      consolidationThreshold: 200
-    });
+    // this.h2gnn = new EnhancedH2GNN({
+    //   embeddingDim: 128,
+    //   numLayers: 4,
+    //   curvature: -1
+    // }, {
+    //   storagePath: './cbdc-persistence',
+    //   maxMemories: 50000,
+    //   consolidationThreshold: 200
+    // });
 
-    await this.h2gnn.initialize();
+    // await this.h2gnn.initialize();
 
-    // Learn CBDC-specific concepts
-    await this.h2gnn.learnConcept('asabiyyah_cooperative_economics', {
-      description: 'Cooperative economics based on social cohesion',
-      examples: ['worker cooperatives', 'credit unions', 'mutual aid networks'],
-      relationships: ['topological_invariants', 'betti_numbers', 'social_networks'],
-      applications: ['cbdc', 'digital_currency', 'economic_coordination']
-    }, 0.95);
+    // // Learn CBDC-specific concepts
+    // await this.h2gnn.learnConcept('asabiyyah_cooperative_economics', {
+    //   description: 'Cooperative economics based on social cohesion',
+    //   examples: ['worker cooperatives', 'credit unions', 'mutual aid networks'],
+    //   relationships: ['topological_invariants', 'betti_numbers', 'social_networks'],
+    //   applications: ['cbdc', 'digital_currency', 'economic_coordination']
+    // }, 0.95);
 
-    await this.h2gnn.learnConcept('600_cell_identity_kernel', {
-      description: '600-cell geometric structure for identity management',
-      examples: ['IPv6-like addressing', 'geometric identity verification', 'topological consensus'],
-      relationships: ['hyperbolic_geometry', 'identity_management', 'consensus_mechanisms'],
-      applications: ['cbdc_identity', 'secure_transactions', 'decentralized_verification']
-    }, 0.9);
+    // await this.h2gnn.learnConcept('600_cell_identity_kernel', {
+    //   description: '600-cell geometric structure for identity management',
+    //   examples: ['IPv6-like addressing', 'geometric identity verification', 'topological consensus'],
+    //   relationships: ['hyperbolic_geometry', 'identity_management', 'consensus_mechanisms'],
+    //   applications: ['cbdc_identity', 'secure_transactions', 'decentralized_verification']
+    // }, 0.9);
 
-    await this.h2gnn.learnConcept('universal_topological_ledger', {
-      description: 'Geometric consensus protocol for decentralized economic coordination',
-      examples: ['Byzantine fault tolerance', 'differential geometry', 'homotopy theory'],
-      relationships: ['consensus_algorithms', 'topological_surfaces', 'economic_coordination'],
-      applications: ['cbdc_consensus', 'transaction_validation', 'network_coordination']
-    }, 0.9);
+    // await this.h2gnn.learnConcept('universal_topological_ledger', {
+    //   description: 'Geometric consensus protocol for decentralized economic coordination',
+    //   examples: ['Byzantine fault tolerance', 'differential geometry', 'homotopy theory'],
+    //   relationships: ['consensus_algorithms', 'topological_surfaces', 'economic_coordination'],
+    //   applications: ['cbdc_consensus', 'transaction_validation', 'network_coordination']
+    // }, 0.9);
 
     console.log('✅ H²GNN initialized and CBDC concepts learned');
 
@@ -195,42 +198,42 @@ class CBDCDemoRunner {
     console.log('✅ All systems initialized successfully');
   }
 
-  /**
-   * Learn from simulation results using H²GNN
-   */
-  private async learnFromSimulationResults(): Promise<void> {
-    if (!this.simulationResults || !this.h2gnn) {
-      return;
-    }
+  // /**
+  //  * Learn from simulation results using H²GNN
+  //  */
+  // private async learnFromSimulationResults(): Promise<void> {
+  //   if (!this.simulationResults || !this.h2gnn) {
+  //     return;
+  //   }
 
-    console.log('🧠 Learning from simulation results using H²GNN...');
+  //   console.log('🧠 Learning from simulation results using H²GNN...');
 
-    // Learn from transaction patterns
-    await this.h2gnn.learnConcept('cbdc_transaction_patterns', {
-      description: 'Patterns observed in CBDC transactions during simulation',
-      examples: this.simulationResults.transactionPatterns || [],
-      relationships: ['economic_behavior', 'transaction_flow', 'user_preferences'],
-      applications: ['transaction_optimization', 'fraud_detection', 'user_experience']
-    }, 0.8);
+  //   // Learn from transaction patterns
+  //   await this.h2gnn.initializeH2GNN().('cbdc_transaction_patterns', {
+  //     description: 'Patterns observed in CBDC transactions during simulation',
+  //     examples: this.simulationResults.transactionPatterns || [],
+  //     relationships: ['economic_behavior', 'transaction_flow', 'user_preferences'],
+  //     applications: ['transaction_optimization', 'fraud_detection', 'user_experience']
+  //   }, 0.8);
 
-    // Learn from consensus behavior
-    await this.h2gnn.learnConcept('consensus_behavior_analysis', {
-      description: 'Analysis of consensus mechanism behavior during simulation',
-      examples: this.simulationResults.consensusMetrics || [],
-      relationships: ['consensus_algorithms', 'network_performance', 'fault_tolerance'],
-      applications: ['consensus_optimization', 'network_scaling', 'reliability_improvement']
-    }, 0.85);
+  //   // Learn from consensus behavior
+  //   await this.h2gnn.learnConcept('consensus_behavior_analysis', {
+  //     description: 'Analysis of consensus mechanism behavior during simulation',
+  //     examples: this.simulationResults.consensusMetrics || [],
+  //     relationships: ['consensus_algorithms', 'network_performance', 'fault_tolerance'],
+  //     applications: ['consensus_optimization', 'network_scaling', 'reliability_improvement']
+  //   }, 0.85);
 
-    // Learn from economic metrics
-    await this.h2gnn.learnConcept('economic_metrics_analysis', {
-      description: 'Economic metrics and their relationships during simulation',
-      examples: this.simulationResults.economicMetrics || [],
-      relationships: ['economic_indicators', 'market_behavior', 'monetary_policy'],
-      applications: ['economic_modeling', 'policy_optimization', 'market_analysis']
-    }, 0.9);
+  //   // Learn from economic metrics
+  //   await this.h2gnn.learnConcept('economic_metrics_analysis', {
+  //     description: 'Economic metrics and their relationships during simulation',
+  //     examples: this.simulationResults.economicMetrics || [],
+  //     relationships: ['economic_indicators', 'market_behavior', 'monetary_policy'],
+  //     applications: ['economic_modeling', 'policy_optimization', 'market_analysis']
+  //   }, 0.9);
 
-    console.log('✅ H²GNN learning from simulation results completed');
-  }
+  //   console.log('✅ H²GNN learning from simulation results completed');
+  // }
 
   /**
    * Run the complete demo
@@ -260,7 +263,7 @@ class CBDCDemoRunner {
 
       // Step 3.5: Learn from results using H²GNN
       console.log('\n🧠 Step 3.5: Learning from results using H²GNN...');
-      await this.learnFromSimulationResults();
+      // await this.learnFromSimulationResults();
 
       // Step 4: Export Results
       if (this.config.exportResults) {
@@ -550,7 +553,7 @@ async function main() {
 }
 
 // Run the demo if this file is executed directly
-if (require.main === module) {
+if (import.meta.url === 'file://' + process.argv[1]) {
   main().catch(console.error);
 }
 
