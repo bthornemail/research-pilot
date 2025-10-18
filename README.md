@@ -275,6 +275,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Contact
 
+**Email**: bthornemail@gmail.com  
+**GitHub**: bthornemail/research-pilot  
+**Institution**: Axiomatic Research Laboratory
 For questions or support, please contact the development team or create an issue in the repository.
 
 ---

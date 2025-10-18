@@ -235,8 +235,10 @@ export class CBDCResearchPilot {
   private complianceEngine: ComplianceEngine;
   private _analyticsEngine!: AnalyticsEngine;
   private _simulationEngine!: SimulationEngine;
+  public config: CBDCPilotConfig;
 
   constructor(config: CBDCPilotConfig) {
+    this.config = config;
     this.users = new Map();
     this.transactions = new Map();
     this.utlSystem = {

@@ -6,9 +6,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { CBDCResearchPilot, CBDCUser, UserType, Transaction, TransactionType, TransactionStatus, KYCStatus } from '../../src/cbdc/research-pilot';
-import { CBDCSimulationEngine, SimulationConfig, EconomicModel, BehaviorModel, SystemModel } from '../../src/cbdc/simulation-engine';
-import { CBDCAnalyticsEngine, AnalyticsConfig } from '../../src/cbdc/analytics-engine';
+import { CBDCResearchPilot, CBDCUser, UserType, Transaction, TransactionType, TransactionStatus, KYCStatus } from './research-pilot.js';
+import { CBDCSimulationEngine, SimulationConfig } from './simulation-engine.js';
+import { CBDCAnalyticsEngine, AnalyticsConfig, RealTimeMetrics } from './analytics-engine.js';
 
 describe('CBDC Research Pilot', () => {
   let pilot: CBDCResearchPilot;
@@ -43,7 +43,7 @@ describe('CBDC Research Pilot', () => {
   describe('Initialization', () => {
     it('should initialize pilot with correct configuration', () => {
       expect(pilot).toBeDefined();
-      expect(pilot['config']).toEqual(config);
+      expect(pilot.config).toEqual(config);
     });
 
     it('should initialize with empty user and transaction maps', () => {
@@ -130,6 +130,10 @@ describe('CBDC Research Pilot', () => {
     it('should process valid transactions successfully', async () => {
       const fromUser = users[0];
       const toUser = users[1];
+
+      if (!fromUser || !toUser) {
+        throw new Error('Test setup failed: could not get users');
+      }
       
       const transaction: Transaction = {
         id: 'test-tx-1',
@@ -164,6 +168,10 @@ describe('CBDC Research Pilot', () => {
     it('should reject transactions with insufficient balance', async () => {
       const fromUser = users[0];
       const toUser = users[1];
+
+      if (!fromUser || !toUser) {
+        throw new Error('Test setup failed: could not get users');
+      }
       
       // Set user balance to 0
       fromUser.wallet.balance = 0;
@@ -200,6 +208,10 @@ describe('CBDC Research Pilot', () => {
     it('should hold transactions for compliance review', async () => {
       const fromUser = users[0];
       const toUser = users[1];
+
+      if (!fromUser || !toUser) {
+        throw new Error('Test setup failed: could not get users');
+      }
       
       const transaction: Transaction = {
         id: 'test-tx-3',
@@ -240,6 +252,11 @@ describe('CBDC Research Pilot', () => {
     it('should update user balances after successful transaction', async () => {
       const fromUser = users[0];
       const toUser = users[1];
+
+      if (!fromUser || !toUser) {
+        throw new Error('Test setup failed: could not get users');
+      }
+
       const initialFromBalance = fromUser.wallet.balance;
       const initialToBalance = toUser.wallet.balance;
       
@@ -276,6 +293,11 @@ describe('CBDC Research Pilot', () => {
     it('should add transaction to user history', async () => {
       const fromUser = users[0];
       const toUser = users[1];
+
+      if (!fromUser || !toUser) {
+        throw new Error('Test setup failed: could not get users');
+      }
+
       const initialFromHistoryLength = fromUser.transactionHistory.length;
       const initialToHistoryLength = toUser.transactionHistory.length;
       
@@ -616,8 +638,8 @@ describe('CBDC Analytics Engine', () => {
       },
       exportFormats: [
         {
-          type: 'json',
-          frequency: 'daily',
+          type: 'json' as const,
+          frequency: 'daily' as const,
           includeMetadata: true
         }
       ]
@@ -641,16 +663,17 @@ describe('CBDC Analytics Engine', () => {
 
   describe('Real-time Metrics', () => {
     it('should record real-time metrics', () => {
-      const metrics = {
+      const metrics: RealTimeMetrics = {
         timestamp: new Date(),
-        activeUsers: 1000,
-        transactionRate: 10,
+        totalUsers: 1000,
+        totalTransactions: 100,
+        totalVolume: 100000,
+        successRate: 0.99,
         systemLoad: 0.5,
         errorRate: 0.01,
         averageLatency: 100,
-        totalVolume: 100000,
-        complianceFlags: 5,
-        userSatisfaction: 0.8
+        userSatisfaction: 0.8,
+        economicImpact: 0.1
       };
 
       analyticsEngine.recordRealTimeMetrics(metrics);
@@ -660,22 +683,28 @@ describe('CBDC Analytics Engine', () => {
     });
 
     it('should create alerts when thresholds are exceeded', () => {
-      const metrics = {
+      const metrics: RealTimeMetrics = {
         timestamp: new Date(),
-        activeUsers: 1000,
-        transactionRate: 10,
+        totalUsers: 1000,
+        totalTransactions: 100,
+        totalVolume: 100000,
+        successRate: 0.99,
         systemLoad: 0.9, // Above threshold
         errorRate: 0.01,
         averageLatency: 100,
-        totalVolume: 100000,
-        complianceFlags: 5,
-        userSatisfaction: 0.8
+        userSatisfaction: 0.8,
+        economicImpact: 0.1
       };
 
       analyticsEngine.recordRealTimeMetrics(metrics);
       
       expect(analyticsEngine['alerts'].length).toBeGreaterThan(0);
-      expect(analyticsEngine['alerts'][0].title).toContain('System Load High');
+      const alert = analyticsEngine['alerts'][0];
+      if (alert) {
+        expect(alert.title).toContain('System Load High');
+      } else {
+        fail('alert was not defined');
+      }
     });
   });
 
@@ -723,16 +752,17 @@ describe('CBDC Analytics Engine', () => {
   describe('Dashboard Data', () => {
     it('should provide dashboard data', () => {
       // Add some metrics
-      const metrics = {
+      const metrics: RealTimeMetrics = {
         timestamp: new Date(),
-        activeUsers: 1000,
-        transactionRate: 10,
+        totalUsers: 1000,
+        totalTransactions: 100,
+        totalVolume: 100000,
+        successRate: 0.99,
         systemLoad: 0.5,
         errorRate: 0.01,
         averageLatency: 100,
-        totalVolume: 100000,
-        complianceFlags: 5,
-        userSatisfaction: 0.8
+        userSatisfaction: 0.8,
+        economicImpact: 0.1
       };
 
       analyticsEngine.recordRealTimeMetrics(metrics);
@@ -821,8 +851,8 @@ describe('Integration Tests', () => {
       },
       exportFormats: [
         {
-          type: 'json',
-          frequency: 'daily',
+          type: 'json' as const,
+          frequency: 'daily' as const,
           includeMetadata: true
         }
       ]
@@ -855,16 +885,17 @@ describe('Integration Tests', () => {
     const results = await simulationEngine.runSimulation(users);
     
     // Record metrics in analytics engine
-    const metrics = {
+    const metrics: RealTimeMetrics = {
       timestamp: new Date(),
-      activeUsers: results.totalUsers,
-      transactionRate: results.totalTransactions / (results.duration * 24),
+      totalUsers: results.totalUsers,
+      totalTransactions: results.totalTransactions,
+      totalVolume: results.totalVolume,
+      successRate: results.successRate,
       systemLoad: results.systemPerformance.systemLoad,
       errorRate: results.systemPerformance.errorRate,
       averageLatency: results.systemPerformance.averageLatency,
-      totalVolume: results.totalVolume,
-      complianceFlags: 0,
-      userSatisfaction: 0.8
+      userSatisfaction: 0.8,
+      economicImpact: 0.1
     };
 
     analyticsEngine.recordRealTimeMetrics(metrics);

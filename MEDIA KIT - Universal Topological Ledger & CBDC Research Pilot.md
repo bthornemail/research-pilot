@@ -287,7 +287,7 @@
 **Brian James Thorne**  
 **Lead Researcher, Axiomatic Research Laboratory**  
 **Email**: bthornemail@gmail.com  
-**Phone**: [Available upon request]  
+**Phone**: 626-385-7747  
 **Location**: Los Angeles, California
 
 ### **Media Inquiries**
