@@ -5,7 +5,7 @@
  * handling economic modeling, user behavior simulation, and system dynamics.
  */
 
-import { CBDCUser, Transaction, UserType, TransactionType, EconomicSimulation, MonetaryPolicy, EconomicConditions } from './research-pilot';
+import { CBDCUser, Transaction, UserType, TransactionType, EconomicSimulation, MonetaryPolicy, EconomicConditions } from './research-pilot.js';
 
 export interface SimulationConfig {
   duration: number; // days
@@ -139,6 +139,7 @@ export class CBDCSimulationEngine {
     this.systemModel = config.systemModel;
     this.eventQueue = [];
     this.metrics = new SimulationMetrics();
+    this.transactions = new Map();
     
     this.initializeState();
   }
@@ -190,28 +191,31 @@ export class CBDCSimulationEngine {
   /**
    * Run the complete simulation
    */
-  async runSimulation(users: Map<string, CBDCUser>): Promise<SimulationResults> {
-    console.log('Starting CBDC simulation...');
+  async runSimulation(users: Map<string, CBDCUser>, scenario: string = 'baseline'): Promise<SimulationResults> {
+    console.log(`Starting ${scenario} CBDC simulation...`);
     
     this.users = users;
     this.transactions = new Map();
+    
+    // Apply scenario-specific configuration
+    this.applyScenarioConfiguration(scenario);
     
     const startTime = Date.now();
     const totalSteps = this.config.duration * 24 / this.config.timeStep;
     
     for (let step = 0; step < totalSteps; step++) {
-      await this.simulateStep();
+      await this.simulateStep(scenario);
       
       if (step % 100 === 0) {
         const progress = (step / totalSteps) * 100;
-        console.log(`Simulation progress: ${progress.toFixed(1)}%`);
+        console.log(`${scenario} simulation progress: ${progress.toFixed(1)}%`);
       }
     }
     
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    console.log(`Simulation completed in ${duration}ms`);
+    console.log(`${scenario} simulation completed in ${duration}ms`);
     
     return this.generateResults();
   }
@@ -219,12 +223,12 @@ export class CBDCSimulationEngine {
   /**
    * Simulate a single time step
    */
-  private async simulateStep(): Promise<void> {
+  private async simulateStep(scenario: string = 'baseline'): Promise<void> {
     // Update economic conditions
     this.updateEconomicConditions();
     
-    // Update user behavior based on economic conditions
-    this.updateUserBehavior();
+    // Update user behavior based on economic conditions and scenario
+    this.updateUserBehavior(scenario);
     
     // Generate transactions based on user behavior
     await this.generateTransactions();
@@ -299,17 +303,20 @@ export class CBDCSimulationEngine {
   }
 
   /**
-   * Update user behavior based on economic conditions
+   * Update user behavior based on economic conditions and scenario
    */
-  private updateUserBehavior(): void {
+  private updateUserBehavior(scenario: string = 'baseline'): void {
     const conditions = this.state.economicConditions;
     const behavior = this.behaviorModel;
     
+    // Apply scenario-specific behavior modifications
+    const scenarioMultiplier = this.getScenarioMultiplier(scenario);
+    
     // Update behavior based on economic conditions
-    behavior.transactionProbability *= (1 + conditions.consumerConfidence * 0.1);
-    behavior.spendingMultiplier *= (1 + conditions.consumerConfidence * 0.1);
-    behavior.savingRate *= (1 + conditions.inflation * 0.1);
-    behavior.riskTolerance *= (1 + conditions.businessConfidence * 0.1);
+    behavior.transactionProbability *= (1 + conditions.consumerConfidence * 0.1) * scenarioMultiplier.transactionProbability;
+    behavior.spendingMultiplier *= (1 + conditions.consumerConfidence * 0.1) * scenarioMultiplier.spendingMultiplier;
+    behavior.savingRate *= (1 + conditions.inflation * 0.1) * scenarioMultiplier.savingRate;
+    behavior.riskTolerance *= (1 + conditions.businessConfidence * 0.1) * scenarioMultiplier.riskTolerance;
     
     // Update user behavior metrics
     this.state.userBehavior.averageTransactionSize *= behavior.spendingMultiplier;
@@ -768,9 +775,110 @@ export class CBDCSimulationEngine {
   getMetrics(): SimulationMetrics {
     return this.metrics;
   }
+
+  /**
+   * Apply scenario-specific configuration
+   */
+  private applyScenarioConfiguration(scenario: string): void {
+    switch (scenario) {
+      case 'economic-shock':
+        this.applyEconomicShockConfiguration();
+        break;
+      case 'stress':
+        this.applyStressTestConfiguration();
+        break;
+      case 'baseline':
+      default:
+        // Use default configuration
+        break;
+    }
+  }
+
+  /**
+   * Apply economic shock scenario configuration
+   */
+  private applyEconomicShockConfiguration(): void {
+    // Reduce consumer and business confidence
+    this.state.economicConditions.consumerConfidence *= 0.6;
+    this.state.economicConditions.businessConfidence *= 0.5;
+    
+    // Increase inflation and unemployment
+    this.state.economicConditions.inflation *= 1.5;
+    this.state.economicConditions.unemployment *= 1.3;
+    
+    // Reduce economic growth
+    this.state.economicConditions.economicGrowth *= 0.3;
+    
+    // Add crisis policy changes
+    this.economicModel.policyChanges.push({
+      timestamp: new Date(this.state.currentTime.getTime() + 24 * 60 * 60 * 1000), // 1 day from start
+      type: 'INTEREST_RATE' as any,
+      magnitude: -0.02, // Emergency rate cut
+      description: 'Emergency interest rate cut during economic crisis',
+      impact: {
+        userBehavior: 0.1,
+        transactionVolume: 0.05,
+        economicGrowth: 0.01,
+        inflation: 0.005,
+        confidence: 0.1
+      }
+    });
+  }
+
+  /**
+   * Apply stress test scenario configuration
+   */
+  private applyStressTestConfiguration(): void {
+    // Increase system load and error rates
+    this.systemModel.errorRate *= 2.0;
+    this.systemModel.latency *= 1.5;
+    
+    // Reduce network capacity
+    this.systemModel.networkCapacity *= 0.7;
+    
+    // Increase transaction volume
+    this.behaviorModel.transactionProbability *= 1.5;
+  }
+
+  /**
+   * Get scenario-specific behavior multipliers
+   */
+  private getScenarioMultiplier(scenario: string): ScenarioMultiplier {
+    switch (scenario) {
+      case 'economic-shock':
+        return {
+          transactionProbability: 0.7, // Reduced transaction activity
+          spendingMultiplier: 0.6,     // Reduced spending
+          savingRate: 1.3,             // Increased saving
+          riskTolerance: 0.5           // Reduced risk tolerance
+        };
+      case 'stress':
+        return {
+          transactionProbability: 1.2, // Increased activity
+          spendingMultiplier: 1.1,     // Slightly increased spending
+          savingRate: 0.9,             // Reduced saving
+          riskTolerance: 1.1           // Slightly increased risk tolerance
+        };
+      case 'baseline':
+      default:
+        return {
+          transactionProbability: 1.0,
+          spendingMultiplier: 1.0,
+          savingRate: 1.0,
+          riskTolerance: 1.0
+        };
+    }
+  }
 }
 
 // Supporting interfaces and classes
+export interface ScenarioMultiplier {
+  transactionProbability: number;
+  spendingMultiplier: number;
+  savingRate: number;
+  riskTolerance: number;
+}
+
 export interface SimulationEvent {
   id: string;
   type: EventType;

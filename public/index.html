@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBDC Research Pilot - Regulatory Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-healthy { background-color: #4CAF50; }
+        .status-warning { background-color: #FF9800; }
+        .status-critical { background-color: #F44336; }
+        .status-disconnected { background-color: #9E9E9E; }
+        .status-idle { background-color: #2196F3; }
+        .status-error { background-color: #F44336; }
+        
+        .data-quality-valid { color: #4CAF50; font-weight: bold; }
+        .data-quality-invalid { color: #F44336; font-weight: bold; }
+        .data-quality-warning { color: #FF9800; font-weight: bold; }
+        
+        .metric-value.loading { color: #9E9E9E; font-style: italic; }
+        .metric-value.error { color: #F44336; font-style: italic; }
+
+        .chart-container {
+            height: 200px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .alerts-section {
+            grid-column: 1 / -1;
+        }
+
+        .alert {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .alert-critical {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .alert-message {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .footer p {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏦 CBDC Research Pilot</h1>
+        <p>Regulatory Compliance Dashboard</p>
+    </div>
+
+    <div class="container">
+        <div class="controls">
+            <button class="btn" onclick="startDemo()">🚀 Start Demo</button>
+            <button class="btn btn-danger" onclick="stopDemo()">⏹️ Stop Demo</button>
+            <button class="btn btn-secondary" onclick="refreshData()">🔄 Refresh Data</button>
+            <button class="btn btn-success" onclick="generateReport()">📄 Generate Report</button>
+            <button class="btn btn-danger" onclick="runStressTest()">💪 Stress Test</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing request...</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- System Health Card -->
+            <div class="card">
+                <h3>🏥 System Health</h3>
+                <div class="metric">
+                    <span class="metric-label">Status</span>
+                    <span class="metric-value">
+                        <span class="status-indicator status-disconnected"></span>
+                        <span id="system-status">Loading...</span>
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value" id="system-uptime">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">System Load</span>
+                    <span class="metric-value" id="system-load">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Memory Usage</span>
+                    <span class="metric-value" id="memory-usage">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">CPU Usage</span>
+                    <span class="metric-value" id="cpu-usage">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Data Source</span>
+                    <span class="metric-value" id="data-source">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Updated</span>
+                    <span class="metric-value" id="last-updated">Never</span>
+                </div>
+            </div>
+
+            <!-- Compliance Status Card -->
+            <div class="card">
+                <h3>🛡️ Compliance Status</h3>
+                <div class="metric">
+                    <span class="metric-label">Overall Compliance</span>
+                    <span class="metric-value" id="overall-compliance">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Risk Score</span>
+                    <span class="metric-value" id="risk-score">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Flags</span>
+                    <span class="metric-value" id="active-flags">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">KYC Compliance</span>
+                    <span class="metric-value" id="kyc-compliance">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">AML Compliance</span>
+                    <span class="metric-value" id="aml-compliance">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Data Validation</span>
+                    <span class="metric-value" id="compliance-validation">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Performance Metrics Card -->
+            <div class="card">
+                <h3>⚡ Performance Metrics</h3>
+                <div class="metric">
+                    <span class="metric-label">TPS</span>
+                    <span class="metric-value" id="tps">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Average Latency</span>
+                    <span class="metric-value" id="avg-latency">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Success Rate</span>
+                    <span class="metric-value" id="success-rate">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Error Rate</span>
+                    <span class="metric-value" id="error-rate">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Throughput</span>
+                    <span class="metric-value" id="throughput">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Performance Status</span>
+                    <span class="metric-value" id="performance-status">Loading...</span>
+                </div>
+            </div>
+
+            <!-- User Metrics Card -->
+            <div class="card">
+                <h3>👥 User Metrics</h3>
+                <div class="metric">
+                    <span class="metric-label">Total Users</span>
+                    <span class="metric-value" id="total-users">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Users</span>
+                    <span class="metric-value" id="active-users">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">New Users (24h)</span>
+                    <span class="metric-value" id="new-users">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">User Growth</span>
+                    <span class="metric-value" id="user-growth">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">User Satisfaction</span>
+                    <span class="metric-value" id="user-satisfaction">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">User Data Quality</span>
+                    <span class="metric-value" id="user-data-quality">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Transaction Metrics Card -->
+            <div class="card">
+                <h3>💸 Transaction Metrics</h3>
+                <div class="metric">
+                    <span class="metric-label">Total Transactions</span>
+                    <span class="metric-value" id="total-transactions">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Volume</span>
+                    <span class="metric-value" id="total-volume">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Average Size</span>
+                    <span class="metric-value" id="avg-transaction-size">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Pending</span>
+                    <span class="metric-value" id="pending-transactions">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Failed</span>
+                    <span class="metric-value" id="failed-transactions">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Transaction Health</span>
+                    <span class="metric-value" id="transaction-health">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Economic Impact Card -->
+            <div class="card">
+                <h3>📈 Economic Impact</h3>
+                <div class="metric">
+                    <span class="metric-label">Economic Velocity</span>
+                    <span class="metric-value" id="economic-velocity">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Network Effect</span>
+                    <span class="metric-value" id="network-effect">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Economic Penetration</span>
+                    <span class="metric-value" id="economic-penetration">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">User Engagement</span>
+                    <span class="metric-value" id="user-engagement">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">System Efficiency</span>
+                    <span class="metric-value" id="system-efficiency">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Economic Data Quality</span>
+                    <span class="metric-value" id="economic-data-quality">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div class="card alerts-section">
+                <h3>🚨 System Alerts</h3>
+                <div class="alert alert-info">
+                    <div class="alert-icon">ℹ️</div>
+                    <div class="alert-content">
+                        <div class="alert-title">System Update Available</div>
+                        <div class="alert-message">A new system update is available. Schedule maintenance window.</div>
+                    </div>
+                </div>
+                <div class="alert alert-warning">
+                    <div class="alert-icon">⚠️</div>
+                    <div class="alert-content">
+                        <div class="alert-title">High Transaction Volume</div>
+                        <div class="alert-message">Transaction volume is 15% above normal. Monitor system performance.</div>
+                    </div>
+                </div>
+                <div class="alert alert-info">
+                    <div class="alert-icon">📊</div>
+                    <div class="alert-content">
+                        <div class="alert-title">Monthly Report Generated</div>
+                        <div class="alert-message">Monthly compliance report has been generated and sent to regulatory authorities.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>CBDC Research Pilot - Regulatory Compliance Dashboard</p>
+        <p>© 2024 Central Bank Digital Currency Research Initiative</p>
+    </div>
+
+    <script>
+        // Dashboard JavaScript functionality with real API integration
+        let demoRunning = false;
+        let currentMetrics = null;
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+        }
+
+        function updateElementById(id, value, className = '') {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+                element.className = className;
+            }
+        }
+
+        function updateStatusIndicator(status) {
+            const statusElement = document.querySelector('.status-indicator');
+            if (statusElement) {
+                statusElement.className = `status-indicator status-${status}`;
+            }
+        }
+
+        function formatNumber(num, decimals = 0) {
+            if (isNaN(num) || num === null || num === undefined) return 'N/A';
+            return num.toLocaleString(undefined, { 
+                minimumFractionDigits: decimals, 
+                maximumFractionDigits: decimals 
+            });
+        }
+
+        function formatPercentage(num, decimals = 1) {
+            if (isNaN(num) || num === null || num === undefined) return 'N/A';
+            return `${(num * 100).toFixed(decimals)}%`;
+        }
+
+        function formatCurrency(num) {
+            if (isNaN(num) || num === null || num === undefined) return 'N/A';
+            if (num >= 1000000) {
+                return `$${(num / 1000000).toFixed(1)}M`;
+            } else if (num >= 1000) {
+                return `$${(num / 1000).toFixed(1)}K`;
+            } else {
+                return `$${num.toFixed(2)}`;
+            }
+        }
+
+        function formatUptime(seconds) {
+            if (isNaN(seconds) || seconds === null || seconds === undefined) return 'N/A';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            return `${hours}h ${minutes}m`;
+        }
+
+        function getDataQualityClass(validation) {
+            if (!validation) return 'data-quality-warning';
+            if (validation.valid) return 'data-quality-valid';
+            if (validation.issues && validation.issues.length > 0) return 'data-quality-invalid';
+            return 'data-quality-warning';
+        }
+
+        async function fetchMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                currentMetrics = data;
+                return data;
+            } catch (error) {
+                console.error('Error fetching metrics:', error);
+                throw error;
+            }
+        }
+
+        function updateDashboardWithRealData(metrics) {
+            if (!metrics) {
+                showDisconnectedState();
+                return;
+            }
+
+            // Update System Health
+            if (metrics.systemHealth) {
+                updateElementById('system-status', metrics.systemHealth.status || 'Unknown');
+                updateElementById('system-uptime', formatUptime(metrics.systemHealth.uptime));
+                updateElementById('system-load', formatPercentage(metrics.systemHealth.systemLoad));
+                updateElementById('memory-usage', formatPercentage(metrics.systemHealth.memoryUsage));
+                updateElementById('cpu-usage', formatPercentage(metrics.systemHealth.cpuUsage));
+                updateStatusIndicator(metrics.systemHealth.status || 'disconnected');
+            }
+
+            // Update Compliance Status
+            if (metrics.complianceStatus) {
+                updateElementById('overall-compliance', formatPercentage(metrics.complianceStatus.overallCompliance));
+                updateElementById('risk-score', formatNumber(metrics.complianceStatus.riskScore, 3));
+                updateElementById('active-flags', formatNumber(metrics.complianceStatus.activeFlags));
+                updateElementById('kyc-compliance', formatPercentage(metrics.complianceStatus.kycCompliance));
+                updateElementById('aml-compliance', formatPercentage(metrics.complianceStatus.amlCompliance));
+            }
+
+            // Update Performance Metrics
+            if (metrics.performanceMetrics) {
+                updateElementById('tps', formatNumber(metrics.performanceMetrics.tps));
+                updateElementById('avg-latency', `${formatNumber(metrics.performanceMetrics.averageLatency)}ms`);
+                updateElementById('success-rate', formatPercentage(metrics.performanceMetrics.successRate));
+                updateElementById('error-rate', formatPercentage(metrics.performanceMetrics.errorRate));
+                updateElementById('throughput', formatNumber(metrics.performanceMetrics.throughput));
+                
+                // Performance status based on success rate and latency
+                const perfStatus = metrics.performanceMetrics.successRate > 0.95 && 
+                                 metrics.performanceMetrics.averageLatency < 100 ? 'Excellent' :
+                                 metrics.performanceMetrics.successRate > 0.9 ? 'Good' : 'Poor';
+                updateElementById('performance-status', perfStatus);
+            }
+
+            // Update User Metrics
+            if (metrics.userMetrics) {
+                updateElementById('total-users', formatNumber(metrics.userMetrics.totalUsers));
+                updateElementById('active-users', formatNumber(metrics.userMetrics.activeUsers));
+                updateElementById('new-users', formatNumber(metrics.userMetrics.newUsers));
+                updateElementById('user-growth', formatPercentage(metrics.userMetrics.userGrowth));
+                updateElementById('user-satisfaction', formatPercentage(metrics.userMetrics.userSatisfaction));
+            }
+
+            // Update Transaction Metrics
+            if (metrics.transactionMetrics) {
+                updateElementById('total-transactions', formatNumber(metrics.transactionMetrics.totalTransactions));
+                updateElementById('total-volume', formatCurrency(metrics.transactionMetrics.totalVolume));
+                updateElementById('avg-transaction-size', formatCurrency(metrics.transactionMetrics.averageTransactionSize));
+                updateElementById('pending-transactions', formatNumber(metrics.transactionMetrics.pendingTransactions));
+                updateElementById('failed-transactions', formatNumber(metrics.transactionMetrics.failedTransactions));
+                
+                // Transaction health based on success rate
+                const txHealth = metrics.transactionMetrics.totalTransactions > 0 ? 
+                    (metrics.transactionMetrics.totalTransactions - metrics.transactionMetrics.failedTransactions) / 
+                    metrics.transactionMetrics.totalTransactions : 1;
+                const healthStatus = txHealth > 0.95 ? 'Excellent' : txHealth > 0.9 ? 'Good' : 'Poor';
+                updateElementById('transaction-health', healthStatus);
+            }
+
+            // Update Economic Impact
+            if (metrics.economicImpact) {
+                updateElementById('economic-velocity', formatNumber(metrics.economicImpact.economicVelocity, 2));
+                updateElementById('network-effect', formatPercentage(metrics.economicImpact.networkEffect));
+                updateElementById('economic-penetration', formatPercentage(metrics.economicImpact.economicPenetration));
+                updateElementById('user-engagement', formatNumber(metrics.economicImpact.userEngagement, 1));
+                updateElementById('system-efficiency', formatPercentage(metrics.economicImpact.systemEfficiency));
+            }
+
+            // Update data source and validation indicators
+            updateElementById('data-source', metrics.dataSource || 'Unknown');
+            updateElementById('last-updated', new Date().toLocaleTimeString());
+            
+            // Update data validation indicators
+            if (metrics.dataValidation) {
+                const validationClass = getDataQualityClass(metrics.dataValidation);
+                updateElementById('compliance-validation', 
+                    metrics.dataValidation.valid ? 'Valid' : 'Issues Detected', validationClass);
+                updateElementById('user-data-quality', 
+                    metrics.dataValidation.valid ? 'Valid' : 'Issues Detected', validationClass);
+                updateElementById('economic-data-quality', 
+                    metrics.dataValidation.valid ? 'Valid' : 'Issues Detected', validationClass);
+            }
+
+            // Add data source alert if this is real-time data
+            if (metrics.dataSource === 'real-time' && metrics.pilotConnected) {
+                addAlert('info', 'Real-Time Data', 'Dashboard showing live data from CBDC Research Pilot system');
+            }
+        }
+
+        function showDisconnectedState() {
+            // Show disconnected state for all metrics
+            const disconnectedValue = 'Disconnected';
+            const disconnectedClass = 'error';
+            
+            // System Health
+            updateElementById('system-status', disconnectedValue, disconnectedClass);
+            updateElementById('system-uptime', disconnectedValue, disconnectedClass);
+            updateElementById('system-load', disconnectedValue, disconnectedClass);
+            updateElementById('memory-usage', disconnectedValue, disconnectedClass);
+            updateElementById('cpu-usage', disconnectedValue, disconnectedClass);
+            updateElementById('data-source', 'Disconnected', disconnectedClass);
+            updateElementById('last-updated', 'Never', disconnectedClass);
+            
+            // All other metrics
+            const allMetricIds = [
+                'overall-compliance', 'risk-score', 'active-flags', 'kyc-compliance', 'aml-compliance',
+                'tps', 'avg-latency', 'success-rate', 'error-rate', 'throughput', 'performance-status',
+                'total-users', 'active-users', 'new-users', 'user-growth', 'user-satisfaction',
+                'total-transactions', 'total-volume', 'avg-transaction-size', 'pending-transactions', 
+                'failed-transactions', 'transaction-health',
+                'economic-velocity', 'network-effect', 'economic-penetration', 'user-engagement', 
+                'system-efficiency', 'compliance-validation', 'user-data-quality', 'economic-data-quality'
+            ];
+            
+            allMetricIds.forEach(id => {
+                updateElementById(id, disconnectedValue, disconnectedClass);
+            });
+            
+            updateStatusIndicator('disconnected');
+            addAlert('critical', 'System Disconnected', 'CBDC Research Pilot system is not connected. Please check system status.');
+        }
+
+        function addAlert(type, title, message) {
+            const alertsSection = document.querySelector('.alerts-section');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            
+            const icon = type === 'critical' ? '🚨' : type === 'warning' ? '⚠️' : 'ℹ️';
+            
+            alertDiv.innerHTML = `
+                <div class="alert-icon">${icon}</div>
+                <div class="alert-content">
+                    <div class="alert-title">${title}</div>
+                    <div class="alert-message">${message}</div>
+                </div>
+            `;
+            
+            alertsSection.appendChild(alertDiv);
+        }
+
+        async function startDemo() {
+            if (demoRunning) {
+                alert('Demo is already running!');
+                return;
+            }
+
+            demoRunning = true;
+            showLoading();
+
+            try {
+                const response = await fetch('/api/demo/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    addAlert('info', 'Demo Started', `Demo started successfully. Demo ID: ${result.demoId}. ${result.note || ''}`);
+                    
+                    // Refresh metrics to show updated data
+                    await refreshData();
+                } else {
+                    throw new Error(result.message || 'Demo start failed');
+                }
+                
+            } catch (error) {
+                addAlert('critical', 'Demo Failed', 'Demo execution failed: ' + error.message);
+            } finally {
+                demoRunning = false;
+                hideLoading();
+            }
+        }
+
+        async function stopDemo() {
+            if (!demoRunning) {
+                alert('No demo is currently running!');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch('/api/demo/stop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    addAlert('info', 'Demo Stopped', `Demo stopped successfully. Duration: ${result.duration?.minutes || 0} minutes. ${result.note || ''}`);
+                    
+                    // Refresh metrics to show final results
+                    await refreshData();
+                } else {
+                    throw new Error(result.message || 'Demo stop failed');
+                }
+                
+            } catch (error) {
+                addAlert('critical', 'Demo Stop Failed', 'Failed to stop demo: ' + error.message);
+            } finally {
+                demoRunning = false;
+                hideLoading();
+            }
+        }
+
+        async function refreshData() {
+            showLoading();
+            
+            try {
+                const metrics = await fetchMetrics();
+                updateDashboardWithRealData(metrics);
+                
+                // Only show success alert if we got real data
+                if (metrics && metrics.dataSource === 'real-time' && metrics.pilotConnected) {
+                addAlert('info', 'Data Refreshed', 'Dashboard data has been updated with real-time metrics from CBDC Research Pilot system.');
+                } else if (metrics && metrics.dataSource === 'disconnected') {
+                    addAlert('warning', 'System Disconnected', 'CBDC Research Pilot system is not connected. Showing basic system metrics only.');
+                }
+                
+            } catch (error) {
+                console.error('Failed to refresh data:', error);
+                showDisconnectedState();
+                addAlert('critical', 'Refresh Failed', 'Failed to refresh data: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function generateReport() {
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/report/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    addAlert('info', 'Report Generated', `Regulatory compliance report generated successfully. Report ID: ${result.reportId}. Data integrity: ${result.dataIntegrity}. ${result.data?.note || ''}`);
+                } else {
+                    throw new Error(result.message || 'Report generation failed');
+                }
+                
+            } catch (error) {
+                addAlert('critical', 'Report Generation Failed', 'Failed to generate report: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function runStressTest() {
+            if (demoRunning) {
+                alert('Demo is already running!');
+                return;
+            }
+
+            demoRunning = true;
+            showLoading();
+
+            try {
+                const response = await fetch('/api/stress-test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    const results = result.results;
+                    addAlert('warning', 'Stress Test Completed', 
+                        `System load: ${results.systemLoad?.percentage || 'N/A'}, Success rate: ${(results.transactionMetrics?.successRate * 100 || 0).toFixed(1)}%, Performance impact: ${results.performanceImpact?.level || 'unknown'}. ${result.note || ''}`);
+                    
+                    // Refresh metrics to show current system state
+                    await refreshData();
+                } else {
+                    throw new Error(result.message || 'Stress test failed');
+                }
+                
+            } catch (error) {
+                addAlert('critical', 'Stress Test Failed', 'Stress test failed: ' + error.message);
+            } finally {
+                demoRunning = false;
+                hideLoading();
+            }
+        }
+
+        // Auto-refresh data every 30 seconds
+        setInterval(() => {
+            if (!demoRunning) {
+                refreshData();
+            }
+        }, 30000);
+
+        // Initialize dashboard with real data
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('CBDC Research Pilot Dashboard initialized');
+            
+            // Show initial loading state
+            showLoading();
+            addAlert('info', 'Dashboard Initializing', 'Loading real-time data from CBDC Research Pilot system...');
+            
+            // Load initial real data
+            try {
+                await refreshData();
+                addAlert('info', 'Dashboard Ready', 'Regulatory compliance dashboard is ready with real-time data from CBDC Research Pilot system.');
+            } catch (error) {
+                console.error('Failed to load initial data:', error);
+                addAlert('warning', 'Data Loading Issue', 'Could not load initial data from CBDC Research Pilot system. Please check system connection.');
+            } finally {
+                hideLoading();
+            }
+        });
+    </script>
+</body>
+</html>

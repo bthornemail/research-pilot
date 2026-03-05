@@ -6,8 +6,8 @@
  * analysis, and research insights.
  */
 
-import { CBDCUser, Transaction, UserType, TransactionType, TransactionStatus, KYCStatus } from './research-pilot';
-import { SimulationState, SystemMetrics, UserBehaviorMetrics, TransactionMetrics } from './simulation-engine';
+import { CBDCUser, Transaction, UserType, TransactionType, TransactionStatus, KYCStatus } from './research-pilot.js';
+import { SimulationState, SystemMetrics, UserBehaviorMetrics, TransactionMetrics } from './simulation-engine.js';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import * as crypto from 'crypto';

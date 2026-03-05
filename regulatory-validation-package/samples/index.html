@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBDC Research Pilot - Regulatory Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-healthy { background-color: #4CAF50; }
+        .status-warning { background-color: #FF9800; }
+        .status-critical { background-color: #F44336; }
+
+        .chart-container {
+            height: 200px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .alerts-section {
+            grid-column: 1 / -1;
+        }
+
+        .alert {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .alert-critical {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .alert-message {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .footer p {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏦 CBDC Research Pilot</h1>
+        <p>Regulatory Compliance Dashboard</p>
+    </div>
+
+    <div class="container">
+        <div class="controls">
+            <button class="btn" onclick="startDemo()">🚀 Start Demo</button>
+            <button class="btn btn-secondary" onclick="refreshData()">🔄 Refresh Data</button>
+            <button class="btn btn-success" onclick="generateReport()">📄 Generate Report</button>
+            <button class="btn btn-danger" onclick="runStressTest()">💪 Stress Test</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing request...</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- System Health Card -->
+            <div class="card">
+                <h3>🏥 System Health</h3>
+                <div class="metric">
+                    <span class="metric-label">Status</span>
+                    <span class="metric-value">
+                        <span class="status-indicator status-healthy"></span>
+                        Healthy
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value">99.9%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">System Load</span>
+                    <span class="metric-value">45%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Memory Usage</span>
+                    <span class="metric-value">62%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">CPU Usage</span>
+                    <span class="metric-value">38%</span>
+                </div>
+            </div>
+
+            <!-- Compliance Status Card -->
+            <div class="card">
+                <h3>🛡️ Compliance Status</h3>
+                <div class="metric">
+                    <span class="metric-label">Overall Compliance</span>
+                    <span class="metric-value">98.5%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Risk Score</span>
+                    <span class="metric-value">0.23</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Flags</span>
+                    <span class="metric-value">3</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">KYC Compliance</span>
+                    <span class="metric-value">95.2%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">AML Compliance</span>
+                    <span class="metric-value">99.2%</span>
+                </div>
+            </div>
+
+            <!-- Performance Metrics Card -->
+            <div class="card">
+                <h3>⚡ Performance Metrics</h3>
+                <div class="metric">
+                    <span class="metric-label">TPS</span>
+                    <span class="metric-value">1,247</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Average Latency</span>
+                    <span class="metric-value">67ms</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Success Rate</span>
+                    <span class="metric-value">99.7%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Error Rate</span>
+                    <span class="metric-value">0.3%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Throughput</span>
+                    <span class="metric-value">8,942</span>
+                </div>
+            </div>
+
+            <!-- User Metrics Card -->
+            <div class="card">
+                <h3>👥 User Metrics</h3>
+                <div class="metric">
+                    <span class="metric-label">Total Users</span>
+                    <span class="metric-value">12,847</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Users</span>
+                    <span class="metric-value">8,234</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">New Users (24h)</span>
+                    <span class="metric-value">156</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">User Growth</span>
+                    <span class="metric-value">+8.3%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">User Satisfaction</span>
+                    <span class="metric-value">87.4%</span>
+                </div>
+            </div>
+
+            <!-- Transaction Metrics Card -->
+            <div class="card">
+                <h3>💸 Transaction Metrics</h3>
+                <div class="metric">
+                    <span class="metric-label">Total Transactions</span>
+                    <span class="metric-value">1,234,567</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Volume</span>
+                    <span class="metric-value">$45.2M</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Average Size</span>
+                    <span class="metric-value">$36.60</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Pending</span>
+                    <span class="metric-value">23</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Failed</span>
+                    <span class="metric-value">89</span>
+                </div>
+            </div>
+
+            <!-- Economic Impact Card -->
+            <div class="card">
+                <h3>📈 Economic Impact</h3>
+                <div class="metric">
+                    <span class="metric-label">Economic Velocity</span>
+                    <span class="metric-value">2.34</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Network Effect</span>
+                    <span class="metric-value">78.5%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Economic Penetration</span>
+                    <span class="metric-value">12.3%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">User Engagement</span>
+                    <span class="metric-value">3.2</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">System Efficiency</span>
+                    <span class="metric-value">99.7%</span>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div class="card alerts-section">
+                <h3>🚨 System Alerts</h3>
+                <div class="alert alert-info">
+                    <div class="alert-icon">ℹ️</div>
+                    <div class="alert-content">
+                        <div class="alert-title">System Update Available</div>
+                        <div class="alert-message">A new system update is available. Schedule maintenance window.</div>
+                    </div>
+                </div>
+                <div class="alert alert-warning">
+                    <div class="alert-icon">⚠️</div>
+                    <div class="alert-content">
+                        <div class="alert-title">High Transaction Volume</div>
+                        <div class="alert-message">Transaction volume is 15% above normal. Monitor system performance.</div>
+                    </div>
+                </div>
+                <div class="alert alert-info">
+                    <div class="alert-icon">📊</div>
+                    <div class="alert-content">
+                        <div class="alert-title">Monthly Report Generated</div>
+                        <div class="alert-message">Monthly compliance report has been generated and sent to regulatory authorities.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>CBDC Research Pilot - Regulatory Compliance Dashboard</p>
+        <p>© 2024 Central Bank Digital Currency Research Initiative</p>
+    </div>
+
+    <script>
+        // Dashboard JavaScript functionality
+        let demoRunning = false;
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+        }
+
+        function updateMetric(cardSelector, label, value) {
+            const card = document.querySelector(cardSelector);
+            if (card) {
+                const metrics = card.querySelectorAll('.metric');
+                for (const metric of metrics) {
+                    const labelElement = metric.querySelector('.metric-label');
+                    if (labelElement && labelElement.textContent.includes(label)) {
+                        const valueElement = metric.querySelector('.metric-value');
+                        if (valueElement) {
+                            valueElement.textContent = value;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        function addAlert(type, title, message) {
+            const alertsSection = document.querySelector('.alerts-section');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            
+            const icon = type === 'critical' ? '🚨' : type === 'warning' ? '⚠️' : 'ℹ️';
+            
+            alertDiv.innerHTML = `
+                <div class="alert-icon">${icon}</div>
+                <div class="alert-content">
+                    <div class="alert-title">${title}</div>
+                    <div class="alert-message">${message}</div>
+                </div>
+            `;
+            
+            alertsSection.appendChild(alertDiv);
+        }
+
+        async function startDemo() {
+            if (demoRunning) {
+                alert('Demo is already running!');
+                return;
+            }
+
+            demoRunning = true;
+            showLoading();
+
+            try {
+                // Simulate demo execution
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Update metrics with demo results
+                updateMetric('.card:nth-child(1)', 'System Load', '67%');
+                updateMetric('.card:nth-child(2)', 'Overall Compliance', '99.1%');
+                updateMetric('.card:nth-child(3)', 'TPS', '1,456');
+                updateMetric('.card:nth-child(4)', 'Active Users', '9,123');
+                updateMetric('.card:nth-child(5)', 'Total Transactions', '1,456,789');
+                updateMetric('.card:nth-child(6)', 'Economic Velocity', '2.67');
+
+                addAlert('info', 'Demo Completed', 'Regulatory demonstration completed successfully. All systems operational.');
+                
+            } catch (error) {
+                addAlert('critical', 'Demo Failed', 'Demo execution failed: ' + error.message);
+            } finally {
+                demoRunning = false;
+                hideLoading();
+            }
+        }
+
+        async function refreshData() {
+            showLoading();
+            
+            try {
+                // Simulate data refresh
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Update random metrics
+                const metrics = [
+                    { card: '.card:nth-child(1)', label: 'System Load', value: Math.floor(Math.random() * 100) + '%' },
+                    { card: '.card:nth-child(2)', label: 'Risk Score', value: (Math.random() * 0.5).toFixed(3) },
+                    { card: '.card:nth-child(3)', label: 'TPS', value: Math.floor(Math.random() * 500) + 1000 },
+                    { card: '.card:nth-child(4)', label: 'Active Users', value: Math.floor(Math.random() * 2000) + 8000 },
+                    { card: '.card:nth-child(5)', label: 'Total Volume', value: '$' + (Math.random() * 10 + 40).toFixed(1) + 'M' },
+                    { card: '.card:nth-child(6)', label: 'Network Effect', value: (Math.random() * 20 + 70).toFixed(1) + '%' }
+                ];
+
+                metrics.forEach(metric => {
+                    updateMetric(metric.card, metric.label, metric.value);
+                });
+
+                addAlert('info', 'Data Refreshed', 'Dashboard data has been updated with latest metrics.');
+                
+            } catch (error) {
+                addAlert('critical', 'Refresh Failed', 'Failed to refresh data: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function generateReport() {
+            showLoading();
+            
+            try {
+                // Simulate report generation
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                addAlert('info', 'Report Generated', 'Regulatory compliance report has been generated and saved to ./reports/');
+                
+            } catch (error) {
+                addAlert('critical', 'Report Generation Failed', 'Failed to generate report: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function runStressTest() {
+            if (demoRunning) {
+                alert('Demo is already running!');
+                return;
+            }
+
+            demoRunning = true;
+            showLoading();
+
+            try {
+                // Simulate stress test
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                
+                // Update metrics to show stress test results
+                updateMetric('.card:nth-child(1)', 'System Load', '89%');
+                updateMetric('.card:nth-child(1)', 'Status', 'Warning');
+                updateMetric('.card:nth-child(3)', 'TPS', '2,134');
+                updateMetric('.card:nth-child(3)', 'Success Rate', '97.8%');
+                updateMetric('.card:nth-child(3)', 'Error Rate', '2.2%');
+
+                addAlert('warning', 'Stress Test Completed', 'System maintained 97.8% success rate under 2x normal load. Performance degradation observed.');
+                
+            } catch (error) {
+                addAlert('critical', 'Stress Test Failed', 'Stress test failed: ' + error.message);
+            } finally {
+                demoRunning = false;
+                hideLoading();
+            }
+        }
+
+        // Auto-refresh data every 30 seconds
+        setInterval(() => {
+            if (!demoRunning) {
+                refreshData();
+            }
+        }, 30000);
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('CBDC Research Pilot Dashboard initialized');
+            addAlert('info', 'Dashboard Ready', 'Regulatory compliance dashboard is ready for demonstration.');
+        });
+    </script>
+</body>
+</html>

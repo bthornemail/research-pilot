@@ -1,0 +1,89 @@
+{
+  "name": "cbdc-research-pilot-regulatory-validation",
+  "version": "1.0.0",
+  "description": "Regulatory validation package for CBDC Research Pilot - meets international central bank standards",
+  "main": "index.js",
+  "scripts": {
+    "validate:all": "npm run validate:compliance && npm run validate:performance && npm run validate:security && npm run validate:privacy",
+    "validate:compliance": "npm test -- --testNamePattern=\"Compliance Engine Validation\"",
+    "validate:performance": "npm test -- --testNamePattern=\"Performance Validation\"",
+    "validate:security": "npm test -- --testNamePattern=\"Security Validation\"",
+    "validate:privacy": "npm test -- --testNamePattern=\"Privacy Analytics Validation\"",
+    "demo:regulatory": "npx ts-node ../src/demo-regulatory.ts",
+    "dashboard:start": "npx ts-node ../src/dashboard-server.ts",
+    "logs:validation": "npm test -- --verbose --testPathPattern=regulatory-validation",
+    "debug:validation": "npm test -- --testNamePattern=\"Compliance Engine Validation\" --verbose",
+    "profile:performance": "npm test -- --testNamePattern=\"Performance Validation\" --verbose",
+    "monitor:resources": "npm test -- --testNamePattern=\"Resource Monitoring\" --verbose",
+    "generate:reports": "npm run demo:regulatory && echo 'Reports generated in ../reports/'",
+    "test:coverage": "npm test -- --coverage --testPathPattern=regulatory-validation",
+    "validate:integrity": "npm test -- --testNamePattern=\"Audit Trail Validation\"",
+    "validate:data": "npm test -- --testNamePattern=\"Data Validation\"",
+    "validate:economic": "npm test -- --testNamePattern=\"Economic Impact Validation\""
+  },
+  "keywords": [
+    "cbdc",
+    "central-bank-digital-currency",
+    "regulatory-compliance",
+    "aml",
+    "kyc",
+    "audit-trail",
+    "privacy-analytics",
+    "data-validation",
+    "regulatory-validation",
+    "central-bank",
+    "financial-regulation",
+    "compliance-engine",
+    "risk-assessment",
+    "sanctions-screening",
+    "differential-privacy",
+    "cryptographic-verification",
+    "regulatory-reporting",
+    "economic-simulation",
+    "regulatory-dashboard"
+  ],
+  "author": "Axiomatic",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/axiomatic/cbdc-research-pilot"
+  },
+  "bugs": {
+    "url": "https://github.com/axiomatic/cbdc-research-pilot/issues"
+  },
+  "homepage": "https://github.com/axiomatic/cbdc-research-pilot#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "uuid": "^9.0.0",
+    "jspdf": "^2.5.0",
+    "xlsx": "^0.18.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/validation/**/*.test.ts"
+    ],
+    "collectCoverageFrom": [
+      "../src/**/*.ts",
+      "!../src/**/*.d.ts"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ]
+  }
+}

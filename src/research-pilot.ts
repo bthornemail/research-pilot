@@ -14,7 +14,8 @@
  * - Performance metrics and analytics
  */
 
-import { CBDCAnalyticsEngine } from './analytics-engine';
+import { CBDCAnalyticsEngine } from './analytics-engine.js';
+import { AuditTrailEngine, AuditEventType, EntityType } from './audit-trail-engine.js';
 
 // Simplified imports for demo purposes
 interface IdentityKernel {
@@ -182,7 +183,7 @@ export interface ComplianceCheck {
 }
 
 // Economic Simulation
-export interface EconomicSimulation {
+export interface EconomicSimulationState {
   monetaryPolicy: MonetaryPolicy;
   economicConditions: EconomicConditions;
   marketConditions: MarketConditions;
@@ -228,13 +229,14 @@ export interface RegulatoryEnvironment {
 export class CBDCResearchPilot {
   private users: Map<string, CBDCUser>;
   private transactions: Map<string, Transaction>;
-  private economicSimulation!: EconomicSimulation;
+  private economicSimulation!: EconomicSimulationState;
   private utlSystem: UTLSystem;
   private identityKernel: IdentityKernel;
   private _asabiyyahEngine: AsabiyyahEngine;
   private complianceEngine: ComplianceEngine;
   private _analyticsEngine!: AnalyticsEngine;
   private _simulationEngine!: SimulationEngine;
+  private auditTrailEngine: AuditTrailEngine;
   public config: CBDCPilotConfig;
 
   constructor(config: CBDCPilotConfig) {
@@ -253,9 +255,26 @@ export class CBDCResearchPilot {
       calculateAsabiyyah: (_users: any[]) => Math.random(),
       updateScores: (_tx: any) => {}
     };
-    this.complianceEngine = new ComplianceEngine(config.complianceConfig);
+    this.complianceEngine = new ComplianceEngine({
+      ...config.complianceConfig,
+      riskThreshold: 0.5 // Default risk threshold
+    });
     this._analyticsEngine = new AnalyticsEngine();
     this._simulationEngine = new SimulationEngine();
+    this.auditTrailEngine = new AuditTrailEngine({
+      enableCryptographicVerification: true,
+      enableImmutableLogging: true,
+      retentionPeriod: 2555, // 7 years for regulatory compliance
+      compressionEnabled: true,
+      encryptionEnabled: false, // Disabled for research purposes
+      exportFormats: ['json', 'csv', 'pdf'],
+      alertThresholds: {
+        failedVerifications: 5,
+        suspiciousActivity: 10,
+        dataIntegrityIssues: 3,
+        accessViolations: 1
+      }
+    });
     
     this.initializeEconomicSimulation();
   }
@@ -284,7 +303,7 @@ export class CBDCResearchPilot {
   /**
    * Generate simulated users with realistic profiles
    */
-  private async generateUsers(count: number): Promise<void> {
+  public async generateUsers(count: number): Promise<void> {
     console.log(`Generating ${count} simulated users...`);
     
     const userTypes = Object.values(UserType);
@@ -327,6 +346,14 @@ export class CBDCResearchPilot {
       location,
       demographics
     };
+    
+    // Log user creation in audit trail
+    await this.auditTrailEngine.logUserEvent(
+      user,
+      AuditEventType.USER_CREATED,
+      'User created',
+      { userType, economicProfile: { income: economicProfile.income } }
+    );
     
     // Register user in UTL system
     // await this.utlSystem.registerUser(user); // Demo mode - skip registration
@@ -454,9 +481,22 @@ export class CBDCResearchPilot {
     const startTime = Date.now();
     
     try {
+      // Log transaction creation
+      await this.auditTrailEngine.logTransactionEvent(
+        transaction,
+        AuditEventType.TRANSACTION_CREATED,
+        { amount: transaction.amount, type: transaction.type }
+      );
+      
       // Validate transaction
       const validation = await this.validateTransaction(transaction);
       if (!validation.valid) {
+        await this.auditTrailEngine.logTransactionEvent(
+          transaction,
+          AuditEventType.TRANSACTION_FAILED,
+          { reason: 'validation_failed', error: validation.error }
+        );
+        
         return {
           success: false,
           error: validation.error || 'Validation failed',
@@ -467,9 +507,27 @@ export class CBDCResearchPilot {
       
       // Check compliance
       const complianceCheck = await this.complianceEngine.checkTransaction(transaction);
+      
+      // Log compliance check
+      await this.auditTrailEngine.logComplianceEvent(
+        transaction.id,
+        'Compliance check performed',
+        {
+          approved: complianceCheck.approved,
+          riskScore: complianceCheck.riskAssessment,
+          flags: complianceCheck.flags.length
+        }
+      );
+      
       if (!complianceCheck.approved) {
         transaction.status = TransactionStatus.COMPLIANCE_HOLD;
         this.transactions.set(transaction.id, transaction);
+        
+        await this.auditTrailEngine.logTransactionEvent(
+          transaction,
+          AuditEventType.TRANSACTION_FAILED,
+          { reason: 'compliance_hold', flags: complianceCheck.flags }
+        );
         
         return {
           success: false,
@@ -483,6 +541,12 @@ export class CBDCResearchPilot {
       // Process through UTL system
       const utlResult = await this.utlSystem.submitTransaction(transaction);
       if (!utlResult.success) {
+        await this.auditTrailEngine.logTransactionEvent(
+          transaction,
+          AuditEventType.TRANSACTION_FAILED,
+          { reason: 'utl_failure', error: utlResult.error }
+        );
+        
         return {
           success: false,
           error: utlResult.error,
@@ -516,6 +580,17 @@ export class CBDCResearchPilot {
       // Update Asabiyyah scores
       await this.updateAsabiyyahScores(transaction);
       
+      // Log successful transaction completion
+      await this.auditTrailEngine.logTransactionEvent(
+        transaction,
+        AuditEventType.TRANSACTION_COMPLETED,
+        { 
+          processingTime: Date.now() - startTime,
+          utlTransactionId: utlResult.transactionId,
+          fees: transaction.fees
+        }
+      );
+      
       return {
         success: true,
         transactionId: transaction.id,
@@ -525,12 +600,18 @@ export class CBDCResearchPilot {
       };
       
     } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          transactionId: transaction.id,
-          processingTime: Date.now() - startTime
-        };
+      await this.auditTrailEngine.logTransactionEvent(
+        transaction,
+        AuditEventType.TRANSACTION_FAILED,
+        { reason: 'system_error', error: error instanceof Error ? error.message : 'Unknown error' }
+      );
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        transactionId: transaction.id,
+        processingTime: Date.now() - startTime
+      };
     }
   }
 
@@ -603,16 +684,15 @@ export class CBDCResearchPilot {
     // Start with realistic base amount
     const baseAmount = this.getRealisticBaseAmount(user);
     
-    // Apply user-specific multipliers (much smaller)
-    const behaviorMultiplier = 1 + (user.behaviorModel.economicSensitivity * 0.2); // Max 20% variation
-    const variation = 0.3; // 30% random variation
+    // Apply user-specific multipliers based on economic profile
+    const incomeMultiplier = Math.min(user.economicProfile.income / this.getBaseIncome(user.userType), 2.0); // Cap at 2x
+    const behaviorMultiplier = 1 + (user.behaviorModel.economicSensitivity * 0.1); // Max 10% variation
+    const variation = 0.2; // 20% random variation
     
-    const calculatedAmount = baseAmount * behaviorMultiplier * (1 + (Math.random() - 0.5) * variation);
+    const calculatedAmount = baseAmount * incomeMultiplier * behaviorMultiplier * (1 + (Math.random() - 0.5) * variation);
     
     // Apply final realistic caps
     const finalAmount = this.applyRealisticCaps(calculatedAmount, user);
-
-    console.log(`💰 Transaction Debug: ${user.userType} - Base: ${baseAmount}, Final: ${finalAmount}, Income: ${user.economicProfile.income}`);
 
     return finalAmount;
   }
@@ -633,19 +713,23 @@ export class CBDCResearchPilot {
 
   private applyRealisticCaps(amount: number, user: CBDCUser): number {
     const absoluteCaps = {
-      [UserType.INDIVIDUAL]: 5000,           // No individual transaction over 5,000
-      [UserType.BUSINESS]: 50000,            // No business transaction over 50,000
-      [UserType.BANK]: 100000,               // No bank transaction over 100,000
-      [UserType.MERCHANT]: 10000,            // No merchant transaction over 10,000
-      [UserType.GOVERNMENT]: 100000,         // No government transaction over 100,000
-      [UserType.CENTRAL_BANK]: 250000,       // No central bank transaction over 250,000
-      [UserType.FINANCIAL_INSTITUTION]: 75000 // No FI transaction over 75,000
+      [UserType.INDIVIDUAL]: 2000,           // Conservative: No individual transaction over 2,000
+      [UserType.BUSINESS]: 25000,            // Conservative: No business transaction over 25,000
+      [UserType.BANK]: 50000,                // Conservative: No bank transaction over 50,000
+      [UserType.MERCHANT]: 5000,             // Conservative: No merchant transaction over 5,000
+      [UserType.GOVERNMENT]: 50000,          // Conservative: No government transaction over 50,000
+      [UserType.CENTRAL_BANK]: 100000,       // Conservative: No central bank transaction over 100,000
+      [UserType.FINANCIAL_INSTITUTION]: 40000 // Conservative: No FI transaction over 40,000
     };
     
-    const incomeBasedCap = user.economicProfile.income * 0.1; // Max 10% of income
-    const absoluteCap = absoluteCaps[user.userType] || 5000;
+    // More conservative income-based cap: max 5% of income
+    const incomeBasedCap = user.economicProfile.income * 0.05;
+    const absoluteCap = absoluteCaps[user.userType] || 2000;
     
-    return Math.min(amount, incomeBasedCap, absoluteCap);
+    // Ensure minimum transaction amount
+    const minAmount = 1;
+    
+    return Math.max(minAmount, Math.min(amount, incomeBasedCap, absoluteCap));
   }
 
   /**
@@ -749,9 +833,16 @@ export class CBDCResearchPilot {
       economicImpact: this.calculateEconomicImpact(users, transactions),
       complianceMetrics: await this.complianceEngine.getMetrics(),
       performanceMetrics: this.calculatePerformanceMetrics(),
-      asabiyyahMetrics: { score: Math.random() },
-      utlMetrics: { tps: 1000, latency: 50 }
+      asabiyyahMetrics: this.calculateAsabiyyahMetrics(users),
+      utlMetrics: this.calculateUTLMetrics(transactions)
     };
+  }
+
+  /**
+   * Get audit trail engine instance
+   */
+  getAuditTrailEngine(): AuditTrailEngine {
+    return this.auditTrailEngine;
   }
 
   /**
@@ -962,8 +1053,19 @@ export class CBDCResearchPilot {
     return 'CBDC-Research-Pilot/1.0';
   }
 
-  private async validateTransaction(_transaction: Transaction): Promise<TransactionValidation> {
-    // Implementation would validate transaction
+  private async validateTransaction(transaction: Transaction): Promise<TransactionValidation> {
+    const fromUser = this.users.get(transaction.from);
+
+    if (!fromUser) {
+      return { valid: false, error: 'Sender not found' };
+    }
+
+    if (fromUser.wallet.balance < (transaction.amount + transaction.fees)) {
+      return { valid: false, error: 'Insufficient balance' };
+    }
+
+    // Add other validation rules here (e.g., transaction limits, KYC status)
+
     return { valid: true };
   }
 
@@ -984,14 +1086,90 @@ export class CBDCResearchPilot {
     // Implementation would update Asabiyyah scores based on transaction
   }
 
-  private calculateEconomicImpact(_users: CBDCUser[], _transactions: Transaction[]): EconomicImpact {
-    // Implementation would calculate economic impact
-    return {} as EconomicImpact;
+  private calculateAsabiyyahMetrics(users: CBDCUser[]): any {
+    const scores = users.map(u => u.asabiyyahScore);
+    const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    const scoreDistribution = {
+      low: scores.filter(s => s < 0.3).length,
+      medium: scores.filter(s => s >= 0.3 && s < 0.7).length,
+      high: scores.filter(s => s >= 0.7).length
+    };
+    
+    return {
+      averageScore,
+      scoreDistribution,
+      totalUsers: users.length,
+      socialCohesion: averageScore > 0.5 ? 'High' : averageScore > 0.3 ? 'Medium' : 'Low'
+    };
+  }
+
+  private calculateUTLMetrics(transactions: Transaction[]): any {
+    const completedTransactions = transactions.filter(tx => tx.status === TransactionStatus.COMPLETED);
+    const totalProcessingTime = transactions.reduce((sum, tx) => {
+      return sum + (tx.amount > 10000 ? 100 : 50);
+    }, 0);
+    
+    const averageLatency = transactions.length > 0 ? totalProcessingTime / transactions.length : 0;
+    const tps = transactions.length; // Transactions per simulation period
+    
+    return {
+      tps,
+      latency: averageLatency,
+      throughput: completedTransactions.length,
+      successRate: transactions.length > 0 ? completedTransactions.length / transactions.length : 1,
+      systemLoad: Math.min(transactions.length / 10000, 1.0)
+    };
+  }
+
+  private calculateEconomicImpact(users: CBDCUser[], transactions: Transaction[]): EconomicImpact {
+    const totalVolume = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const totalUsers = users.length;
+    const averageTransactionSize = transactions.length > 0 ? totalVolume / transactions.length : 0;
+    
+    // Calculate economic velocity (transactions per user per day)
+    const economicVelocity = transactions.length / Math.max(totalUsers, 1);
+    
+    // Calculate network effects based on user diversity
+    const userTypeDiversity = new Set(users.map(u => u.userType)).size;
+    const networkEffect = userTypeDiversity / Object.keys(UserType).length;
+    
+    // Calculate economic penetration (total volume vs total user income)
+    const totalUserIncome = users.reduce((sum, user) => sum + user.economicProfile.income, 0);
+    const economicPenetration = totalUserIncome > 0 ? totalVolume / totalUserIncome : 0;
+    
+    return {
+      totalVolume,
+      economicVelocity,
+      networkEffect,
+      economicPenetration,
+      averageTransactionSize,
+      userEngagement: transactions.length / Math.max(totalUsers, 1),
+      systemEfficiency: transactions.filter(tx => tx.status === TransactionStatus.COMPLETED).length / Math.max(transactions.length, 1)
+    };
   }
 
   private calculatePerformanceMetrics(): PerformanceMetrics {
-    // Implementation would calculate performance metrics
-    return {} as PerformanceMetrics;
+    const transactions = Array.from(this.transactions.values());
+    const completedTransactions = transactions.filter(tx => tx.status === TransactionStatus.COMPLETED);
+    const failedTransactions = transactions.filter(tx => tx.status === TransactionStatus.FAILED);
+    
+    const totalProcessingTime = transactions.reduce((sum, tx) => {
+      // Estimate processing time based on transaction complexity
+      return sum + (tx.amount > 10000 ? 100 : 50); // Larger transactions take longer
+    }, 0);
+    
+    const averageProcessingTime = transactions.length > 0 ? totalProcessingTime / transactions.length : 0;
+    
+    return {
+      totalTransactions: transactions.length,
+      completedTransactions: completedTransactions.length,
+      failedTransactions: failedTransactions.length,
+      successRate: transactions.length > 0 ? completedTransactions.length / transactions.length : 1,
+      averageProcessingTime,
+      throughput: transactions.length, // Transactions per simulation period
+      errorRate: transactions.length > 0 ? failedTransactions.length / transactions.length : 0,
+      systemLoad: Math.min(transactions.length / 10000, 1.0) // Normalize to 0-1 scale
+    };
   }
 
   private async initializeEconomicSimulation(): Promise<void> {
@@ -1095,7 +1273,7 @@ export interface ResearchDataExport {
   analytics: CBDCAnalytics;
   userData: any[];
   transactionData: any[];
-  economicSimulation: EconomicSimulation;
+  economicSimulation: EconomicSimulationState;
 }
 
 // Additional supporting types
@@ -1136,11 +1314,24 @@ export interface DeviceInfo {
 }
 
 export interface EconomicImpact {
-  // Implementation details
+  totalVolume: number;
+  economicVelocity: number;
+  networkEffect: number;
+  economicPenetration: number;
+  averageTransactionSize: number;
+  userEngagement: number;
+  systemEfficiency: number;
 }
 
 export interface PerformanceMetrics {
-  // Implementation details
+  totalTransactions: number;
+  completedTransactions: number;
+  failedTransactions: number;
+  successRate: number;
+  averageProcessingTime: number;
+  throughput: number;
+  errorRate: number;
+  systemLoad: number;
 }
 
 export interface KYCRequirements {
@@ -1181,23 +1372,237 @@ export interface SimulationParameters {
 
 // Supporting classes
 export class ComplianceEngine {
-  constructor(_config: any) {}
-  
-  async checkTransaction(_transaction: Transaction): Promise<ComplianceCheck> {
-    // Implementation would check compliance
+  private config: ComplianceConfig;
+  private sanctionsList: Set<string>;
+  private riskPatterns: RiskPattern[];
+  private complianceFlags: Map<string, ComplianceFlag[]>;
+
+  constructor(config: ComplianceConfig) {
+    this.config = config;
+    this.sanctionsList = new Set();
+    this.riskPatterns = [];
+    this.complianceFlags = new Map();
+    this.initializeSanctionsList();
+    this.initializeRiskPatterns();
+  }
+
+  private initializeSanctionsList(): void {
+    // Initialize with common sanctions patterns
+    this.sanctionsList.add('sanctioned_entity_001');
+    this.sanctionsList.add('sanctioned_entity_002');
+    this.sanctionsList.add('sanctioned_entity_003');
+  }
+
+  private initializeRiskPatterns(): void {
+    this.riskPatterns = [
+      {
+        name: 'Large Transaction',
+        pattern: (tx: Transaction) => tx.amount > this.config.amlThreshold,
+        riskScore: 0.3,
+        flagType: ComplianceFlagType.LARGE_TRANSACTION
+      },
+      {
+        name: 'Rapid Successive Transactions',
+        pattern: (tx: Transaction) => this.checkRapidTransactions(tx),
+        riskScore: 0.4,
+        flagType: ComplianceFlagType.UNUSUAL_PATTERN
+      },
+      {
+        name: 'Round Number Amounts',
+        pattern: (tx: Transaction) => tx.amount % 1000 === 0 && tx.amount > 10000,
+        riskScore: 0.2,
+        flagType: ComplianceFlagType.UNUSUAL_PATTERN
+      }
+    ];
+  }
+
+  private checkRapidTransactions(tx: Transaction): boolean {
+    // Check if user has made multiple transactions in short time
+    const userFlags = this.complianceFlags.get(tx.from) || [];
+    const recentFlags = userFlags.filter(flag => 
+      Date.now() - flag.timestamp.getTime() < 300000 // 5 minutes
+    );
+    return recentFlags.length > 3;
+  }
+
+  async checkTransaction(transaction: Transaction): Promise<ComplianceCheck> {
+    const flags: ComplianceFlag[] = [];
+    let riskScore = 0;
+
+    // AML Check
+    const amlResult = await this.performAMLCheck(transaction);
+    if (amlResult.flagged) {
+      flags.push(amlResult.flag);
+      riskScore += amlResult.riskScore;
+    }
+
+    // Sanctions Check
+    const sanctionsResult = await this.performSanctionsCheck(transaction);
+    if (sanctionsResult.flagged) {
+      flags.push(sanctionsResult.flag);
+      riskScore += sanctionsResult.riskScore;
+    }
+
+    // Risk Pattern Analysis
+    const patternResults = await this.analyzeRiskPatterns(transaction);
+    flags.push(...patternResults.flags);
+    riskScore += patternResults.totalRiskScore;
+
+    // Store flags for user
+    if (flags.length > 0) {
+      const existingFlags = this.complianceFlags.get(transaction.from) || [];
+      this.complianceFlags.set(transaction.from, [...existingFlags, ...flags]);
+    }
+
+    const approved = riskScore < this.config.riskThreshold && 
+                    !flags.some(flag => flag.severity === ComplianceSeverity.CRITICAL);
+
     return {
-      amlCheck: true,
-      sanctionsCheck: true,
-      riskAssessment: Math.random(),
-      flags: [],
-      approved: true
+      amlCheck: !amlResult.flagged,
+      sanctionsCheck: !sanctionsResult.flagged,
+      riskAssessment: Math.min(riskScore, 1.0),
+      flags,
+      approved
     };
   }
-  
-  async getMetrics(): Promise<any> {
-    // Implementation would return compliance metrics
-    return {};
+
+  private async performAMLCheck(transaction: Transaction): Promise<AMLResult> {
+    // Check for AML patterns
+    if (transaction.amount > this.config.amlThreshold) {
+      return {
+        flagged: true,
+        riskScore: 0.3,
+        flag: {
+          type: ComplianceFlagType.LARGE_TRANSACTION,
+          severity: transaction.amount > this.config.amlThreshold * 2 ? 
+                   ComplianceSeverity.HIGH : ComplianceSeverity.MEDIUM,
+          description: `Transaction amount ${transaction.amount} exceeds AML threshold ${this.config.amlThreshold}`,
+          timestamp: new Date(),
+          resolved: false
+        }
+      };
+    }
+
+    return { flagged: false, riskScore: 0, flag: {} as ComplianceFlag };
   }
+
+  private async performSanctionsCheck(transaction: Transaction): Promise<SanctionsResult> {
+    // Check against sanctions list
+    const fromSanctioned = this.sanctionsList.has(transaction.from);
+    const toSanctioned = this.sanctionsList.has(transaction.to);
+
+    if (fromSanctioned || toSanctioned) {
+      return {
+        flagged: true,
+        riskScore: 1.0,
+        flag: {
+          type: ComplianceFlagType.SANCTIONS_MATCH,
+          severity: ComplianceSeverity.CRITICAL,
+          description: `Transaction involves sanctioned entity: ${fromSanctioned ? transaction.from : transaction.to}`,
+          timestamp: new Date(),
+          resolved: false
+        }
+      };
+    }
+
+    return { flagged: false, riskScore: 0, flag: {} as ComplianceFlag };
+  }
+
+  private async analyzeRiskPatterns(transaction: Transaction): Promise<PatternAnalysisResult> {
+    const flags: ComplianceFlag[] = [];
+    let totalRiskScore = 0;
+
+    for (const pattern of this.riskPatterns) {
+      if (pattern.pattern(transaction)) {
+        const flag: ComplianceFlag = {
+          type: pattern.flagType,
+          severity: pattern.riskScore > 0.5 ? ComplianceSeverity.HIGH : 
+                   pattern.riskScore > 0.3 ? ComplianceSeverity.MEDIUM : ComplianceSeverity.LOW,
+          description: `Risk pattern detected: ${pattern.name}`,
+          timestamp: new Date(),
+          resolved: false
+        };
+        flags.push(flag);
+        totalRiskScore += pattern.riskScore;
+      }
+    }
+
+    return { flags, totalRiskScore };
+  }
+
+  async getMetrics(): Promise<ComplianceMetrics> {
+    const allFlags = Array.from(this.complianceFlags.values()).flat();
+    const totalTransactions = allFlags.length;
+    
+    return {
+      totalFlags: allFlags.length,
+      flagsByType: allFlags.reduce((acc, flag) => {
+        acc[flag.type] = (acc[flag.type] || 0) + 1;
+        return acc;
+      }, {} as Record<ComplianceFlagType, number>),
+      flagsBySeverity: allFlags.reduce((acc, flag) => {
+        acc[flag.severity] = (acc[flag.severity] || 0) + 1;
+        return acc;
+      }, {} as Record<ComplianceSeverity, number>),
+      averageRiskScore: allFlags.length > 0 ? 
+        allFlags.reduce((sum, flag) => sum + (flag.severity === ComplianceSeverity.CRITICAL ? 1.0 : 
+                                              flag.severity === ComplianceSeverity.HIGH ? 0.7 :
+                                              flag.severity === ComplianceSeverity.MEDIUM ? 0.4 : 0.1), 0) / allFlags.length : 0,
+      complianceRate: totalTransactions > 0 ? 
+        (totalTransactions - allFlags.filter(f => f.severity === ComplianceSeverity.CRITICAL).length) / totalTransactions : 1.0
+    };
+  }
+
+  async resolveFlag(flagId: string, resolution: string, reviewer: string): Promise<void> {
+    for (const [userId, flags] of this.complianceFlags.entries()) {
+      const flag = flags.find(f => f.description.includes(flagId));
+      if (flag) {
+        flag.resolved = true;
+        break;
+      }
+    }
+  }
+}
+
+interface ComplianceConfig {
+  amlThreshold: number;
+  sanctionsCheck: boolean;
+  riskAssessment: boolean;
+  kycRequirements: string;
+  reportingThreshold: number;
+  riskThreshold: number;
+}
+
+interface RiskPattern {
+  name: string;
+  pattern: (tx: Transaction) => boolean;
+  riskScore: number;
+  flagType: ComplianceFlagType;
+}
+
+interface AMLResult {
+  flagged: boolean;
+  riskScore: number;
+  flag: ComplianceFlag;
+}
+
+interface SanctionsResult {
+  flagged: boolean;
+  riskScore: number;
+  flag: ComplianceFlag;
+}
+
+interface PatternAnalysisResult {
+  flags: ComplianceFlag[];
+  totalRiskScore: number;
+}
+
+interface ComplianceMetrics {
+  totalFlags: number;
+  flagsByType: Record<ComplianceFlagType, number>;
+  flagsBySeverity: Record<ComplianceSeverity, number>;
+  averageRiskScore: number;
+  complianceRate: number;
 }
 
 export class AnalyticsEngine {

@@ -39,6 +39,7 @@
     "node_modules",
     "dist",
     "coverage",
+    "regulatory-validation-package",
     "**/*.test.ts",
     "**/*.spec.ts"
   ],
